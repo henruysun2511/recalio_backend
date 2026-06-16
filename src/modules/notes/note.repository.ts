@@ -27,6 +27,10 @@ const noteSelect = {
 export class NoteRepository {
     constructor(private readonly prisma: PrismaService) { }
 
+    async countByDeck(deckId: string) {
+        return this.prisma.note.count({ where: { deckId, deletedAt: null } });
+    }
+
     async createWithCards(userId: string, deckId: string, dto: CreateNoteDto, cardTemplateIds: string[]) {
         return this.prisma.$transaction(async (tx) => {
             const note = await tx.note.create({

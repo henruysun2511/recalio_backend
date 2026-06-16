@@ -6,6 +6,7 @@ import { paginate } from '../../common/utils/paginate.util';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { DeckService } from '../decks/deck.service';
 import { NoteTemplateService } from '../note-templates/note-template.service';
+import { NOTE_CONSTANTS } from './note.constant';
 
 @Injectable()
 export class NoteService {
@@ -19,6 +20,9 @@ export class NoteService {
         const ownerId = await this.deckService.getOwner(deckId);
         if (!ownerId) throw NoteError.deckNotFound();
         if (ownerId !== userId) throw NoteError.notOwner();
+
+        const count = await this.repo.countByDeck(deckId);
+        if (count >= NOTE_CONSTANTS.NOTES_PER_DECK_MAX) throw NoteError.limitExceeded();
 
         const cardTemplateIds = await this.noteTemplateService.getCardTemplateIds(dto.templateId);
 
@@ -63,6 +67,12 @@ export class NoteService {
                 const note = await this.repo.findById(item.id);
                 if (!note || note.deckId !== deckId) throw NoteError.notFound();
             }
+        }
+
+        const newCount = dto.notes.filter((n) => !n.id).length;
+        if (newCount) {
+            const current = await this.repo.countByDeck(deckId);
+            if (current + newCount > NOTE_CONSTANTS.NOTES_PER_DECK_MAX) throw NoteError.limitExceeded();
         }
 
         const templateIds = [...new Set(dto.notes.map((n) => n.templateId))];

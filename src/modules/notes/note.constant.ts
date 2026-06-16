@@ -1,5 +1,6 @@
 export const NOTE_CONSTANTS = {
     TAG_MAX: 20,
     TAG_MAX_LENGTH: 50,
+    NOTES_PER_DECK_MAX: 100,
     SORT_FIELDS: ['createdAt', 'updatedAt', 'word'] as const,
 } as const;

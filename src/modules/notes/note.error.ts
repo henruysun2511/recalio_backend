@@ -17,11 +17,7 @@ export class NoteError {
         return new NotFoundException('Deck không tồn tại hoặc không thể truy cập');
     }
 
-    static noTemplate() {
-        return new BadRequestException('Template không tồn tại');
-    }
-
-    static noLanguage() {
-        return new BadRequestException('Ngôn ngữ không tồn tại');
+    static limitExceeded() {
+        return new BadRequestException('Deck đã đạt giới hạn 100 notes');
     }
 }
