@@ -1,4 +1,5 @@
 import { NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
+import { DECK_CONSTANTS } from './deck.constant';
 
 export class DeckError {
     static notFound() {
@@ -19,5 +20,9 @@ export class DeckError {
 
     static cannotCloneOwn() {
         return new BadRequestException('Không thể clone deck của chính mình');
+    }
+
+    static maxDepthReached() {
+        return new BadRequestException(`Không thể lồng deck quá ${DECK_CONSTANTS.MAX_DEPTH} cấp`);
     }
 }

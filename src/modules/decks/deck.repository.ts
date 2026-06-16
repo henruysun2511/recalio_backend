@@ -255,6 +255,15 @@ export class DeckRepository {
         });
     }
 
+    async findParentDepth(parentId: string): Promise<number> {
+        const parent = await this.prisma.deck.findUnique({
+            where: { id: parentId },
+            select: { parentId: true },
+        });
+        if (!parent) return 0;
+        return 1 + (parent.parentId ? await this.findParentDepth(parent.parentId) : 0);
+    }
+
     async ban(id: string) {
         return this.prisma.deck.update({
             where: { id },

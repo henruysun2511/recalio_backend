@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DeckRepository } from './deck.repository';
 import { CreateDeckDto, UpdateDeckDto, MoveDeckDto, QueryDeckDto } from './deck.dto';
 import { DeckError } from './deck.error';
+import { DECK_CONSTANTS } from './deck.constant';
 import { paginate } from '../../common/utils/paginate.util';
 
 @Injectable()
@@ -11,6 +12,12 @@ export class DeckService {
     async create(userId: string, dto: CreateDeckDto) {
         const existing = await this.repo.findByName(userId, dto.name);
         if (existing) throw DeckError.nameTaken(dto.name);
+
+        if (dto.parentId) {
+            const depth = await this.repo.findParentDepth(dto.parentId);
+            if (depth >= DECK_CONSTANTS.MAX_DEPTH) throw DeckError.maxDepthReached();
+        }
+
         return this.repo.create(userId, dto);
     }
 
@@ -74,6 +81,12 @@ export class DeckService {
         const deck = await this.repo.findById(id);
         if (!deck || deck.deletedAt) throw DeckError.notFound();
         if (deck.userId !== userId) throw DeckError.notOwner();
+
+        if (dto.parentId) {
+            const depth = await this.repo.findParentDepth(dto.parentId);
+            if (depth >= DECK_CONSTANTS.MAX_DEPTH) throw DeckError.maxDepthReached();
+        }
+
         return this.repo.move(id, dto.parentId ?? null);
     }
 
