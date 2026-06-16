@@ -41,6 +41,12 @@ export class XxxModule {}
 
 - Module is imported in `AppModule` (no `@Global()` on feature modules)
 - `PrismaService`, `JwtModule`, `LoggerModule` provided globally via `SharedModule`
+- If a service needs a repository from another module, import that module and inject its exported provider:
+  ```ts
+  // follow.module.ts
+  @Module({ imports: [UserModule], ... })
+  // follow.service.ts — injects UserRepository (exported by UserModule)
+  ```
 
 ## Import Rules (Critical — nodenext)
 - **ALL local imports must be relative paths.** No bare `src/` paths.
@@ -104,6 +110,8 @@ paginate<T>(data: T[], total: number, query: PaginationDto)
 - Use `paginate()` for list responses
 - Throw error via `XxxError.<method>()` (e.g., `DeckError.notFound()`)
 - Auto-derive fields when applicable (e.g., `fullPath = name` when not provided)
+- Cross-module service: inject repositories from other modules by importing their module (e.g., `FollowService` injects `UserRepository` via `UserModule` import)
+- For composite unique constraint (`followerId_followingId`), use `findUnique` with `where: { followerId_followingId: { ... } }`
 
 ## Error Conventions
 ```ts
@@ -125,7 +133,7 @@ export class XxxError {
 - Swagger: add `@SwaggerDoc({ summary, responseType, isArray?, bodyType?, status? })`
 - Get user: `@CurrentUser('id') userId: string`
 - Delete: `@HttpCode(HttpStatus.NO_CONTENT)` + no return
-- Route order matters: static routes (`/me`, `/archived`) before parameterized (`/:id`)
+- Route order matters: static routes (`/me`, `/archived`) before parameterized (`/:id`). Static routes with different segment counts don't conflict (e.g. `GET following` vs `GET :id/status`).
 
 ## Auth & Guards
 - `JwtAuthGuard` (global): checks `@Public()` → skip, otherwise validate JWT

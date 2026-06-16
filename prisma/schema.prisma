@@ -255,7 +255,7 @@ model Card {
   userId         String
   noteId         String
   cardTemplateId String
-  deckId         String       // denormalized — tránh JOIN qua Note
+  deckId         String       
 
   state          CardState    @default(NEW)
   flags          Int          @default(0) // bitmask: 1=red 2=orange 4=green 8=blue

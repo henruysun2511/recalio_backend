@@ -5,9 +5,10 @@ import { SharedModule } from './shared/shared.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/users/user.module';
 import { DeckModule } from './modules/decks/deck.module';
+import { FollowModule } from './modules/follow/follow.module';
 
 @Module({
-    imports: [SharedModule, AuthModule, UserModule, DeckModule],
+    imports: [SharedModule, AuthModule, UserModule, DeckModule, FollowModule],
     controllers: [AppController],
     providers: [AppService],
 })
