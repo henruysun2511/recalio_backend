@@ -104,19 +104,7 @@ export class DeckService {
         const existing = await this.repo.findCloneByUser(userId, id);
         if (existing) throw DeckError.alreadyCloned();
 
-        const [cloned] = await Promise.all([
-            this.repo.clone(userId, {
-                name: source.name,
-                fullPath: source.fullPath,
-                description: source.description,
-                coverImage: source.coverImage,
-                tags: source.tags,
-                sourceDeckId: source.id,
-            }),
-            this.repo.incrementDownloadCount(id),
-        ]);
-
-        return cloned;
+        return this.repo.deepClone(userId, source);
     }
 
     async toggleBan(id: string) {

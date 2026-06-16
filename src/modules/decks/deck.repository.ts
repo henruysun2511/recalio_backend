@@ -215,37 +215,134 @@ export class DeckRepository {
                 description: true,
                 coverImage: true,
                 tags: true,
+                setting: {
+                    select: {
+                        algorithm: true,
+                        newCardsPerDay: true,
+                        reviewsPerDay: true,
+                        learningSteps: true,
+                        graduatingInterval: true,
+                        easyInterval: true,
+                        intervalModifier: true,
+                        easyBonus: true,
+                        hardInterval: true,
+                        maximumInterval: true,
+                        lapseSteps: true,
+                        minimumInterval: true,
+                        leechThreshold: true,
+                        leechAction: true,
+                        fsrsWeights: true,
+                        requestRetention: true,
+                    },
+                },
+                notes: {
+                    where: { deletedAt: null },
+                    select: {
+                        id: true,
+                        templateId: true,
+                        languageId: true,
+                        word: true,
+                        meaning: true,
+                        ipa: true,
+                        partOfSpeech: true,
+                        example: true,
+                        audioUrl: true,
+                        imageUrl: true,
+                        tags: true,
+                        fields: true,
+                        cards: {
+                            select: {
+                                id: true,
+                                cardTemplateId: true,
+                                flags: true,
+                            },
+                        },
+                    },
+                },
             },
         });
     }
 
-    async clone(userId: string, source: {
-        name: string;
-        fullPath: string;
-        description: string | null;
-        coverImage: string | null;
-        tags: string[];
-        sourceDeckId: string;
-    }) {
-        return this.prisma.deck.create({
-            data: {
-                userId,
-                name: source.name,
-                fullPath: source.fullPath,
-                description: source.description,
-                coverImage: source.coverImage,
-                tags: source.tags,
-                sourceDeckId: source.sourceDeckId,
-                isPublic: false,
-            },
-            select: deckListSelect,
-        });
-    }
+    async deepClone(userId: string, source: NonNullable<Awaited<ReturnType<DeckRepository['findSourceForClone']>>>) {
+        return this.prisma.$transaction(async (tx) => {
+            const newDeckId = crypto.randomUUID();
 
-    async incrementDownloadCount(id: string) {
-        return this.prisma.deck.update({
-            where: { id },
-            data: { downloadCount: { increment: 1 } },
+            await tx.deck.create({
+                data: {
+                    id: newDeckId,
+                    userId,
+                    name: source.name,
+                    fullPath: source.fullPath,
+                    description: source.description,
+                    coverImage: source.coverImage,
+                    tags: source.tags,
+                    sourceDeckId: source.id,
+                    isPublic: false,
+                },
+                select: { id: true },
+            });
+
+            if (source.setting) {
+                await tx.deckSetting.create({
+                    data: { deckId: newDeckId, ...source.setting },
+                });
+            }
+
+            if (source.notes.length) {
+                const oldToNewNoteId = new Map<string, string>();
+                const noteData = source.notes.map((note) => {
+                    const newId = crypto.randomUUID();
+                    oldToNewNoteId.set(note.id, newId);
+                    return {
+                        id: newId,
+                        userId,
+                        deckId: newDeckId,
+                        templateId: note.templateId,
+                        languageId: note.languageId,
+                        word: note.word,
+                        meaning: note.meaning,
+                        ipa: note.ipa,
+                        partOfSpeech: note.partOfSpeech,
+                        example: note.example,
+                        audioUrl: note.audioUrl,
+                        imageUrl: note.imageUrl,
+                        tags: note.tags,
+                        fields: note.fields ?? {},
+                    };
+                });
+
+                await tx.note.createMany({ data: noteData });
+
+                const cardData = source.notes.flatMap((note) =>
+                    note.cards.map((card) => ({
+                        id: crypto.randomUUID(),
+                        userId,
+                        noteId: oldToNewNoteId.get(note.id)!,
+                        cardTemplateId: card.cardTemplateId,
+                        deckId: newDeckId,
+                        flags: card.flags,
+                        state: 'NEW' as const,
+                        due: new Date(),
+                        interval: 0,
+                        easeFactor: 2.5,
+                        repetitions: 0,
+                        lapses: 0,
+                        currentStep: 0,
+                    })),
+                );
+
+                await tx.card.createMany({ data: cardData });
+            }
+
+            await tx.deck.update({
+                where: { id: source.id },
+                data: { downloadCount: { increment: 1 } },
+            });
+
+            return tx.deck.findUnique({
+                where: { id: newDeckId },
+                select: deckListSelect,
+            });
         });
     }
 
