@@ -27,24 +27,40 @@ const noteSelect = {
 export class NoteRepository {
     constructor(private readonly prisma: PrismaService) { }
 
-    async create(userId: string, deckId: string, dto: CreateNoteDto) {
-        return this.prisma.note.create({
-            data: {
-                userId,
-                deckId,
-                templateId: dto.templateId,
-                languageId: dto.languageId,
-                word: dto.word,
-                meaning: dto.meaning,
-                ipa: dto.ipa,
-                partOfSpeech: dto.partOfSpeech,
-                example: dto.example,
-                audioUrl: dto.audioUrl,
-                imageUrl: dto.imageUrl,
-                tags: dto.tags ?? [],
-                fields: (dto.fields ?? {}) as Prisma.InputJsonValue,
-            },
-            select: noteSelect,
+    async createWithCards(userId: string, deckId: string, dto: CreateNoteDto, cardTemplateIds: string[]) {
+        return this.prisma.$transaction(async (tx) => {
+            const note = await tx.note.create({
+                data: {
+                    userId,
+                    deckId,
+                    templateId: dto.templateId,
+                    languageId: dto.languageId,
+                    word: dto.word,
+                    meaning: dto.meaning,
+                    ipa: dto.ipa,
+                    partOfSpeech: dto.partOfSpeech,
+                    example: dto.example,
+                    audioUrl: dto.audioUrl,
+                    imageUrl: dto.imageUrl,
+                    tags: dto.tags ?? [],
+                    fields: (dto.fields ?? {}) as Prisma.InputJsonValue,
+                },
+                select: noteSelect,
+            });
+
+            if (cardTemplateIds.length) {
+                await tx.card.createMany({
+                    data: cardTemplateIds.map((cardTemplateId) => ({
+                        id: crypto.randomUUID(),
+                        userId,
+                        noteId: note.id,
+                        cardTemplateId,
+                        deckId,
+                    })),
+                });
+            }
+
+            return note;
         });
     }
 
@@ -91,10 +107,11 @@ export class NoteRepository {
         });
     }
 
-    async batchUpsert(userId: string, deckId: string, items: BatchUpsertNoteItem[]) {
+    async batchUpsert(userId: string, deckId: string, items: BatchUpsertNoteItem[], cardTemplateMap: Record<string, string[]>) {
         return this.prisma.$transaction(async (tx) => {
             const allIds: string[] = [];
             const createData: any[] = [];
+            const createCardData: any[] = [];
             const updatePairs: { id: string; data: any }[] = [];
 
             for (const item of items) {
@@ -121,11 +138,25 @@ export class NoteRepository {
                     const id = crypto.randomUUID();
                     allIds.push(id);
                     createData.push({ id, userId, deckId, ...data });
+
+                    const ctIds = cardTemplateMap[item.templateId] ?? [];
+                    for (const cardTemplateId of ctIds) {
+                        createCardData.push({
+                            id: crypto.randomUUID(),
+                            userId,
+                            noteId: id,
+                            cardTemplateId,
+                            deckId,
+                        });
+                    }
                 }
             }
 
             if (createData.length) {
                 await tx.note.createMany({ data: createData });
+            }
+            if (createCardData.length) {
+                await tx.card.createMany({ data: createCardData });
             }
             for (const { id, data } of updatePairs) {
                 await tx.note.update({ where: { id }, data });

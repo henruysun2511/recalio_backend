@@ -7,6 +7,12 @@ import { NoteTemplateError } from './note-template.error';
 export class NoteTemplateService {
     constructor(private readonly repo: NoteTemplateRepository) { }
 
+    async getCardTemplateIds(templateId: string) {
+        const template = await this.repo.findById(templateId);
+        if (!template) return [];
+        return template.cardTemplates.map((ct) => ct.id);
+    }
+
     // ─── Note Template ─────────────────────────────────────
 
     async create(dto: CreateNoteTemplateDto) {

@@ -5,12 +5,14 @@ import { NoteError } from './note.error';
 import { paginate } from '../../common/utils/paginate.util';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { DeckService } from '../decks/deck.service';
+import { NoteTemplateService } from '../note-templates/note-template.service';
 
 @Injectable()
 export class NoteService {
     constructor(
         private readonly repo: NoteRepository,
         private readonly deckService: DeckService,
+        private readonly noteTemplateService: NoteTemplateService,
     ) { }
 
     async create(userId: string, deckId: string, dto: CreateNoteDto) {
@@ -18,7 +20,9 @@ export class NoteService {
         if (!ownerId) throw NoteError.deckNotFound();
         if (ownerId !== userId) throw NoteError.notOwner();
 
-        return this.repo.create(userId, deckId, dto);
+        const cardTemplateIds = await this.noteTemplateService.getCardTemplateIds(dto.templateId);
+
+        return this.repo.createWithCards(userId, deckId, dto, cardTemplateIds);
     }
 
     async findByDeck(userId: string | undefined, deckId: string, dto: PaginationDto) {
@@ -61,6 +65,14 @@ export class NoteService {
             }
         }
 
-        return this.repo.batchUpsert(userId, deckId, dto.notes);
+        const templateIds = [...new Set(dto.notes.map((n) => n.templateId))];
+        const cardTemplateMap: Record<string, string[]> = {};
+        await Promise.all(
+            templateIds.map(async (tid) => {
+                cardTemplateMap[tid] = await this.noteTemplateService.getCardTemplateIds(tid);
+            }),
+        );
+
+        return this.repo.batchUpsert(userId, deckId, dto.notes, cardTemplateMap);
     }
 }
