@@ -12,10 +12,9 @@ import { LanguageModule } from './modules/languages/language.module';
 import { NoteTemplateModule } from './modules/note-templates/note-template.module';
 import { DeckSettingModule } from './modules/deck-settings/deck-setting.module';
 import { NoteModule } from './modules/notes/note.module';
-import { PreviewModule } from './modules/preview/preview.module';
 
 @Module({
-    imports: [SharedModule, AuthModule, UserModule, DeckModule, FollowModule, ReportModule, ReviewModule, LanguageModule, NoteTemplateModule, DeckSettingModule, NoteModule, PreviewModule],
+    imports: [SharedModule, AuthModule, UserModule, DeckModule, FollowModule, ReportModule, ReviewModule, LanguageModule, NoteTemplateModule, DeckSettingModule, NoteModule],
     controllers: [AppController],
     providers: [AppService],
 })

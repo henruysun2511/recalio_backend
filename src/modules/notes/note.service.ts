@@ -1,20 +1,44 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../infrastructures/prisma/prisma.service';
 import { NoteRepository } from './note.repository';
-import { CreateNoteDto, UpdateNoteDto, BatchUpsertNotesDto } from './note.dto';
+import { CreateNoteDto, UpdateNoteDto, BatchUpsertNotesDto, PreviewRequestDto, PreviewResponseDto } from './note.dto';
 import { NoteError } from './note.error';
 import { paginate } from '../../common/utils/paginate.util';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { DeckService } from '../decks/deck.service';
 import { NoteTemplateService } from '../note-templates/note-template.service';
 import { NOTE_CONSTANTS } from './note.constant';
+import { detectLanguage } from './language.util';
 
 @Injectable()
 export class NoteService {
     constructor(
+        private readonly prisma: PrismaService,
         private readonly repo: NoteRepository,
         private readonly deckService: DeckService,
         private readonly noteTemplateService: NoteTemplateService,
     ) { }
+
+    async preview(dto: PreviewRequestDto): Promise<PreviewResponseDto> {
+        const items = await Promise.all(
+            dto.items.map(async (item) => {
+                const detectedLanguage = item.languageId ?? detectLanguage(item.text);
+
+                const cache = await this.prisma.audioCache.findUnique({
+                    where: { text_language: { text: item.text, language: detectedLanguage } },
+                    select: { audioUrl: true },
+                });
+
+                return {
+                    text: item.text,
+                    detectedLanguage,
+                    audioUrl: cache?.audioUrl ?? null,
+                };
+            }),
+        );
+
+        return { items };
+    }
 
     async create(userId: string, deckId: string, dto: CreateNoteDto) {
         const ownerId = await this.deckService.getOwner(deckId);
