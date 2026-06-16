@@ -29,34 +29,6 @@ export class NoteService {
         return this.repo.createWithCards(userId, deckId, dto, cardTemplateIds);
     }
 
-    async findByDeck(userId: string | undefined, deckId: string, dto: PaginationDto) {
-        const ownerId = await this.deckService.checkReadAccess(deckId, userId);
-        if (!ownerId) throw NoteError.deckNotAccessible();
-
-        const { items, total } = await this.repo.findByDeck(deckId, dto);
-        return paginate(items, total, dto);
-    }
-
-    async update(userId: string, id: string, dto: UpdateNoteDto) {
-        const note = await this.repo.findById(id);
-        if (!note) throw NoteError.notFound();
-
-        const ownerId = await this.deckService.getOwner(note.deckId);
-        if (!ownerId || ownerId !== userId) throw NoteError.notOwner();
-
-        return this.repo.update(id, dto);
-    }
-
-    async delete(userId: string, id: string) {
-        const note = await this.repo.findById(id);
-        if (!note) throw NoteError.notFound();
-
-        const ownerId = await this.deckService.getOwner(note.deckId);
-        if (!ownerId || ownerId !== userId) throw NoteError.notOwner();
-
-        await this.repo.softDelete(id);
-    }
-
     async batchUpsert(userId: string, deckId: string, dto: BatchUpsertNotesDto) {
         const ownerId = await this.deckService.getOwner(deckId);
         if (!ownerId) throw NoteError.deckNotFound();
@@ -85,4 +57,34 @@ export class NoteService {
 
         return this.repo.batchUpsert(userId, deckId, dto.notes, cardTemplateMap);
     }
+
+    async findByDeck(userId: string | undefined, deckId: string, dto: PaginationDto) {
+        const ownerId = await this.deckService.checkReadAccess(deckId, userId);
+        if (!ownerId) throw NoteError.deckNotAccessible();
+
+        const { items, total } = await this.repo.findByDeck(deckId, dto);
+        return paginate(items, total, dto);
+    }
+
+    async update(userId: string, id: string, dto: UpdateNoteDto) {
+        const note = await this.repo.findById(id);
+        if (!note) throw NoteError.notFound();
+
+        const ownerId = await this.deckService.getOwner(note.deckId);
+        if (!ownerId || ownerId !== userId) throw NoteError.notOwner();
+
+        return this.repo.update(id, dto);
+    }
+
+    async delete(userId: string, id: string) {
+        const note = await this.repo.findById(id);
+        if (!note) throw NoteError.notFound();
+
+        const ownerId = await this.deckService.getOwner(note.deckId);
+        if (!ownerId || ownerId !== userId) throw NoteError.notOwner();
+
+        await this.repo.softDelete(id);
+    }
+
+
 }
