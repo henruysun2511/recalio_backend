@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructures/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import { CreateNoteDto, UpdateNoteDto } from './note.dto';
+import { CreateNoteDto, UpdateNoteDto, BatchUpsertNoteItem } from './note.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { SortOrder } from '../../common/enums/sort.enum';
 
@@ -68,17 +68,7 @@ export class NoteRepository {
     async findById(id: string) {
         return this.prisma.note.findUnique({
             where: { id },
-            select: noteSelect,
-        });
-    }
-
-    async findByIdFull(id: string) {
-        return this.prisma.note.findUnique({
-            where: { id, deletedAt: null },
-            select: {
-                ...noteSelect,
-                userId: true,
-            },
+            select: { ...noteSelect, userId: true },
         });
     }
 
@@ -98,6 +88,53 @@ export class NoteRepository {
         return this.prisma.note.update({
             where: { id },
             data: { deletedAt: new Date() },
+        });
+    }
+
+    async batchUpsert(userId: string, deckId: string, items: BatchUpsertNoteItem[]) {
+        return this.prisma.$transaction(async (tx) => {
+            const allIds: string[] = [];
+            const createData: any[] = [];
+            const updatePairs: { id: string; data: any }[] = [];
+
+            for (const item of items) {
+                const data: any = {
+                    templateId: item.templateId,
+                    languageId: item.languageId,
+                    word: item.word,
+                    meaning: item.meaning,
+                    ipa: item.ipa,
+                    partOfSpeech: item.partOfSpeech,
+                    example: item.example,
+                    audioUrl: item.audioUrl,
+                    imageUrl: item.imageUrl,
+                    tags: item.tags ?? [],
+                };
+                if (item.fields) {
+                    data.fields = item.fields as Prisma.InputJsonValue;
+                }
+
+                if (item.id) {
+                    allIds.push(item.id);
+                    updatePairs.push({ id: item.id, data });
+                } else {
+                    const id = crypto.randomUUID();
+                    allIds.push(id);
+                    createData.push({ id, userId, deckId, ...data });
+                }
+            }
+
+            if (createData.length) {
+                await tx.note.createMany({ data: createData });
+            }
+            for (const { id, data } of updatePairs) {
+                await tx.note.update({ where: { id }, data });
+            }
+
+            return tx.note.findMany({
+                where: { id: { in: allIds } },
+                select: noteSelect,
+            });
         });
     }
 }

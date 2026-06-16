@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { NoteService } from './note.service';
-import { CreateNoteDto, UpdateNoteDto, NoteResponseDto } from './note.dto';
+import { CreateNoteDto, UpdateNoteDto, NoteResponseDto, BatchUpsertNotesDto } from './note.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator';
@@ -21,6 +21,14 @@ export class NoteController {
         return this.service.create(userId, deckId, dto);
     }
 
+    @Post('decks/:deckId/batch')
+    @ApiBearerAuth()
+    @ResponseMessage('Tạo/Cập nhật hàng loạt note thành công')
+    @SwaggerDoc({ summary: 'Batch upsert notes', bodyType: BatchUpsertNotesDto, responseType: NoteResponseDto, isArray: true, status: 201 })
+    async batchUpsert(@CurrentUser('id') userId: string, @Param('deckId') deckId: string, @Body() dto: BatchUpsertNotesDto) {
+        return this.service.batchUpsert(userId, deckId, dto);
+    }
+
     @Get('decks/:deckId')
     @Public()
     @ResponseMessage('Lấy danh sách note thành công')
@@ -31,14 +39,6 @@ export class NoteController {
         @Query() dto: PaginationDto,
     ) {
         return this.service.findByDeck(userId, deckId, dto);
-    }
-
-    @Get(':id')
-    @ApiBearerAuth()
-    @ResponseMessage('Lấy note thành công')
-    @SwaggerDoc({ summary: 'Get a note', responseType: NoteResponseDto })
-    async findById(@CurrentUser('id') userId: string, @Param('id') id: string) {
-        return this.service.findById(userId, id);
     }
 
     @Patch(':id')

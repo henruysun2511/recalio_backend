@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { NoteRepository } from './note.repository';
-import { CreateNoteDto, UpdateNoteDto } from './note.dto';
+import { CreateNoteDto, UpdateNoteDto, BatchUpsertNotesDto } from './note.dto';
 import { NoteError } from './note.error';
 import { paginate } from '../../common/utils/paginate.util';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
@@ -29,19 +29,8 @@ export class NoteService {
         return paginate(items, total, dto);
     }
 
-    async findById(userId: string, id: string) {
-        const note = await this.repo.findByIdFull(id);
-        if (!note) throw NoteError.notFound();
-
-        const ownerId = await this.deckService.checkReadAccess(note.deckId, userId);
-        if (!ownerId) throw NoteError.notFound();
-
-        const { userId: _, ...rest } = note;
-        return rest;
-    }
-
     async update(userId: string, id: string, dto: UpdateNoteDto) {
-        const note = await this.repo.findByIdFull(id);
+        const note = await this.repo.findById(id);
         if (!note) throw NoteError.notFound();
 
         const ownerId = await this.deckService.getOwner(note.deckId);
@@ -51,12 +40,27 @@ export class NoteService {
     }
 
     async delete(userId: string, id: string) {
-        const note = await this.repo.findByIdFull(id);
+        const note = await this.repo.findById(id);
         if (!note) throw NoteError.notFound();
 
         const ownerId = await this.deckService.getOwner(note.deckId);
         if (!ownerId || ownerId !== userId) throw NoteError.notOwner();
 
         await this.repo.softDelete(id);
+    }
+
+    async batchUpsert(userId: string, deckId: string, dto: BatchUpsertNotesDto) {
+        const ownerId = await this.deckService.getOwner(deckId);
+        if (!ownerId) throw NoteError.deckNotFound();
+        if (ownerId !== userId) throw NoteError.notOwner();
+
+        for (const item of dto.notes) {
+            if (item.id) {
+                const note = await this.repo.findById(item.id);
+                if (!note || note.deckId !== deckId) throw NoteError.notFound();
+            }
+        }
+
+        return this.repo.batchUpsert(userId, deckId, dto.notes);
     }
 }

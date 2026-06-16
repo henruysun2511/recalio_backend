@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsArray, IsNotEmpty, MaxLength, ArrayMaxSize, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsArray, IsNotEmpty, MaxLength, ArrayMaxSize, IsObject, ArrayMinSize, ValidateNested } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PartOfSpeech } from '@prisma/client';
@@ -168,4 +168,85 @@ export class NoteResponseDto {
 
     @ApiProperty({ example: '2026-06-16T10:00:00.000Z' })
     updatedAt: Date;
+}
+
+// ─── Batch ─────────────────────────────────────────────────
+
+export class BatchUpsertNoteItem {
+    @ApiPropertyOptional({ example: 'uuid', description: 'Có để update, không có để tạo mới' })
+    @IsOptional()
+    @IsString({ message: 'id phải là chuỗi kí tự' })
+    id?: string;
+
+    @ApiProperty({ example: 'uuid' })
+    @IsString({ message: 'templateId phải là chuỗi kí tự' })
+    @IsNotEmpty({ message: 'templateId không được để trống' })
+    templateId: string;
+
+    @ApiProperty({ example: 'en' })
+    @IsString({ message: 'languageId phải là chuỗi kí tự' })
+    @IsNotEmpty({ message: 'languageId không được để trống' })
+    languageId: string;
+
+    @ApiPropertyOptional({ example: 'hello' })
+    @IsOptional()
+    @IsString({ message: 'word phải là chuỗi kí tự' })
+    @Transform(({ value }) => value?.trim())
+    word?: string;
+
+    @ApiPropertyOptional({ example: 'xin chào' })
+    @IsOptional()
+    @IsString({ message: 'meaning phải là chuỗi kí tự' })
+    @Transform(({ value }) => value?.trim())
+    meaning?: string;
+
+    @ApiPropertyOptional({ example: '/həˈloʊ/' })
+    @IsOptional()
+    @IsString({ message: 'ipa phải là chuỗi kí tự' })
+    @Transform(({ value }) => value?.trim())
+    ipa?: string;
+
+    @ApiPropertyOptional({ enum: PartOfSpeech, example: 'NOUN' })
+    @IsOptional()
+    @IsEnum(PartOfSpeech, { message: 'Từ loại không hợp lệ' })
+    partOfSpeech?: PartOfSpeech;
+
+    @ApiPropertyOptional({ example: 'Hello, how are you?' })
+    @IsOptional()
+    @IsString({ message: 'example phải là chuỗi kí tự' })
+    @Transform(({ value }) => value?.trim())
+    example?: string;
+
+    @ApiPropertyOptional({ example: 'https://audio.example.com/hello.mp3' })
+    @IsOptional()
+    @IsString({ message: 'audioUrl phải là chuỗi kí tự' })
+    audioUrl?: string;
+
+    @ApiPropertyOptional({ example: 'https://image.example.com/hello.jpg' })
+    @IsOptional()
+    @IsString({ message: 'imageUrl phải là chuỗi kí tự' })
+    imageUrl?: string;
+
+    @ApiPropertyOptional({ example: ['greeting', 'basic'] })
+    @IsOptional()
+    @IsArray({ message: 'tags phải là mảng' })
+    @ArrayMaxSize(NOTE_CONSTANTS.TAG_MAX, { message: 'Không được quá 20 tags' })
+    @IsString({ each: true, message: 'Mỗi tag phải là chuỗi kí tự' })
+    @MaxLength(NOTE_CONSTANTS.TAG_MAX_LENGTH, { each: true, message: 'Tag không được quá 50 kí tự' })
+    @Transform(({ value }) => value?.map((v: string) => v.trim().toLowerCase()))
+    tags?: string[];
+
+    @ApiPropertyOptional({ example: { 'Gender': 'Neuter' } })
+    @IsOptional()
+    @IsObject({ message: 'fields phải là object' })
+    fields?: Record<string, unknown>;
+}
+
+export class BatchUpsertNotesDto {
+    @ApiProperty({ type: [BatchUpsertNoteItem] })
+    @IsArray({ message: 'notes phải là mảng' })
+    @ArrayMinSize(1, { message: 'Phải có ít nhất 1 note' })
+    @ValidateNested({ each: true })
+    @Type(() => BatchUpsertNoteItem)
+    notes: BatchUpsertNoteItem[];
 }
