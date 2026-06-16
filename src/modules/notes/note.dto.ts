@@ -284,8 +284,3 @@ export class PreviewResponseItemDto {
     @ApiPropertyOptional({ example: 'https://...mp3', nullable: true })
     audioUrl: string | null;
 }
-
-export class PreviewResponseDto {
-    @ApiProperty({ type: [PreviewResponseItemDto] })
-    items: PreviewResponseItemDto[];
-}

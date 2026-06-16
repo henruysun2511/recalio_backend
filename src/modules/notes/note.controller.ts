@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { NoteService } from './note.service';
-import { CreateNoteDto, UpdateNoteDto, NoteResponseDto, BatchUpsertNotesDto, PreviewRequestDto, PreviewResponseDto } from './note.dto';
+import { CreateNoteDto, UpdateNoteDto, NoteResponseDto, BatchUpsertNotesDto, PreviewRequestDto, PreviewResponseItemDto } from './note.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator';
@@ -44,7 +44,7 @@ export class NoteController {
     @Post('preview')
     @Public()
     @ResponseMessage('Detect thành công')
-    @SwaggerDoc({ summary: 'Detect language and check audio cache', bodyType: PreviewRequestDto, responseType: PreviewResponseDto })
+    @SwaggerDoc({ summary: 'Detect language and check audio cache', bodyType: PreviewRequestDto, responseType: PreviewResponseItemDto, isArray: true })
     async preview(@Body() dto: PreviewRequestDto) {
         return this.service.preview(dto);
     }

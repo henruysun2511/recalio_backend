@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { NoteRepository } from './note.repository';
-import { CreateNoteDto, UpdateNoteDto, BatchUpsertNotesDto, PreviewRequestDto, PreviewResponseDto } from './note.dto';
+import { CreateNoteDto, UpdateNoteDto, BatchUpsertNotesDto, PreviewRequestDto, PreviewResponseItemDto } from './note.dto';
 import { NoteError } from './note.error';
 import { paginate } from '../../common/utils/paginate.util';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
@@ -17,7 +17,7 @@ export class NoteService {
         private readonly noteTemplateService: NoteTemplateService,
     ) { }
 
-    async preview(dto: PreviewRequestDto): Promise<PreviewResponseDto> {
+    async preview(dto: PreviewRequestDto): Promise<PreviewResponseItemDto[]> {
         const supportedSet = await this.repo.findSupportedLanguageIds();
 
         const items = await Promise.all(
@@ -40,7 +40,7 @@ export class NoteService {
             }),
         );
 
-        return { items };
+        return items;
     }
 
     async create(userId: string, deckId: string, dto: CreateNoteDto) {
