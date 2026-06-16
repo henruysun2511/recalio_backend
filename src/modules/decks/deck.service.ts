@@ -15,6 +15,13 @@ export class DeckService {
         return deck.userId;
     }
 
+    async checkReadAccess(id: string, userId?: string) {
+        const deck = await this.repo.findById(id);
+        if (!deck || deck.deletedAt || deck.isBanned) return null;
+        if (deck.isPublic || deck.userId === userId) return deck.userId;
+        return null;
+    }
+
     async create(userId: string, dto: CreateDeckDto) {
         const existing = await this.repo.findByName(userId, dto.name);
         if (existing) throw DeckError.nameTaken(dto.name);

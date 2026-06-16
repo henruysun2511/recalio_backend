@@ -1,0 +1,62 @@
+import { Injectable } from '@nestjs/common';
+import { NoteRepository } from './note.repository';
+import { CreateNoteDto, UpdateNoteDto } from './note.dto';
+import { NoteError } from './note.error';
+import { paginate } from '../../common/utils/paginate.util';
+import { PaginationDto } from '../../common/dtos/pagination.dto';
+import { DeckService } from '../decks/deck.service';
+
+@Injectable()
+export class NoteService {
+    constructor(
+        private readonly repo: NoteRepository,
+        private readonly deckService: DeckService,
+    ) { }
+
+    async create(userId: string, deckId: string, dto: CreateNoteDto) {
+        const ownerId = await this.deckService.getOwner(deckId);
+        if (!ownerId) throw NoteError.deckNotFound();
+        if (ownerId !== userId) throw NoteError.notOwner();
+
+        return this.repo.create(userId, deckId, dto);
+    }
+
+    async findByDeck(userId: string | undefined, deckId: string, dto: PaginationDto) {
+        const ownerId = await this.deckService.checkReadAccess(deckId, userId);
+        if (!ownerId) throw NoteError.deckNotAccessible();
+
+        const { items, total } = await this.repo.findByDeck(deckId, dto);
+        return paginate(items, total, dto);
+    }
+
+    async findById(userId: string, id: string) {
+        const note = await this.repo.findByIdFull(id);
+        if (!note) throw NoteError.notFound();
+
+        const ownerId = await this.deckService.checkReadAccess(note.deckId, userId);
+        if (!ownerId) throw NoteError.notFound();
+
+        const { userId: _, ...rest } = note;
+        return rest;
+    }
+
+    async update(userId: string, id: string, dto: UpdateNoteDto) {
+        const note = await this.repo.findByIdFull(id);
+        if (!note) throw NoteError.notFound();
+
+        const ownerId = await this.deckService.getOwner(note.deckId);
+        if (!ownerId || ownerId !== userId) throw NoteError.notOwner();
+
+        return this.repo.update(id, dto);
+    }
+
+    async delete(userId: string, id: string) {
+        const note = await this.repo.findByIdFull(id);
+        if (!note) throw NoteError.notFound();
+
+        const ownerId = await this.deckService.getOwner(note.deckId);
+        if (!ownerId || ownerId !== userId) throw NoteError.notOwner();
+
+        await this.repo.softDelete(id);
+    }
+}
