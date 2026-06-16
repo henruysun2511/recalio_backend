@@ -28,14 +28,14 @@ export class NoteService {
                     detectedLanguage = 'und';
                 }
 
-                const cache = detectedLanguage !== 'und'
+                const cache = !item.audioUrl && detectedLanguage !== 'und'
                     ? await this.repo.findAudioCache(item.text, detectedLanguage)
                     : null;
 
                 return {
                     text: item.text,
                     detectedLanguage,
-                    audioUrl: cache?.audioUrl ?? null,
+                    audioUrl: item.audioUrl ?? cache?.audioUrl ?? null,
                 };
             }),
         );

@@ -263,6 +263,11 @@ export class PreviewItemDto {
     @IsOptional()
     @IsString({ message: 'languageId phải là chuỗi kí tự' })
     languageId?: string;
+
+    @ApiPropertyOptional({ example: 'https://audio.example.com/hello.mp3', description: 'Audio URL có sẵn, có sẽ bỏ qua cache' })
+    @IsOptional()
+    @IsString({ message: 'audioUrl phải là chuỗi kí tự' })
+    audioUrl?: string;
 }
 
 export class PreviewRequestDto {
