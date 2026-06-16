@@ -65,7 +65,6 @@ model User {
   studySessions    StudySession[]
   deckReviews      DeckReview[]
   reportedBy       DeckReport[]      @relation("ReportedBy")
-  reviewedBy       DeckReport[]      @relation("ReviewedBy")
   userFollowers    UserFollow[]      @relation("Following")
   userFollowing    UserFollow[]      @relation("Follower")
   notifications    Notification[]
@@ -358,16 +357,13 @@ model DeckReport {
   reason       ReportReason
   description  String?
   status       ReportStatus @default(PENDING)
-  reviewedById String?
-  reviewedAt   DateTime?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  reportedBy User  @relation("ReportedBy", fields: [reportedById], references: [id])
-  deck       Deck  @relation(fields: [deckId], references: [id], onDelete: Cascade)
-  reviewedBy User? @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  reportedBy User @relation("ReportedBy", fields: [reportedById], references: [id])
+  deck       Deck @relation(fields: [deckId], references: [id], onDelete: Cascade)
 
-  @@index([status]) // admin filter PENDING reports
+  @@index([status])
   @@map("deck_reports")
 }
 
