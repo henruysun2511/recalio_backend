@@ -1,0 +1,9 @@
+export const NOTE_TEMPLATE_CONSTANTS = {
+    NAME_MAX_LENGTH: 100,
+    FIELD_NAME_MAX_LENGTH: 50,
+    FIELD_NAMES_MAX: 20,
+    CSS_MAX_LENGTH: 5000,
+    HTML_MAX_LENGTH: 5000,
+    CARD_TEMPLATE_NAME_MAX_LENGTH: 100,
+    SORT_FIELDS: ['name', 'createdAt'] as const,
+} as const;

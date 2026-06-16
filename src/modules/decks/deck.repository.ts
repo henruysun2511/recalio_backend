@@ -54,6 +54,7 @@ export class DeckRepository {
                 isPublic: dto.isPublic ?? false,
                 tags: dto.tags ?? [],
                 parentId: dto.parentId,
+                setting: { create: {} },
             },
             select: deckMySelect,
         });
