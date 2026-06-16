@@ -9,6 +9,12 @@ import { paginate } from '../../common/utils/paginate.util';
 export class DeckService {
     constructor(private readonly repo: DeckRepository) { }
 
+    async getOwner(id: string) {
+        const deck = await this.repo.findById(id);
+        if (!deck || deck.deletedAt) return null;
+        return deck.userId;
+    }
+
     async create(userId: string, dto: CreateDeckDto) {
         const existing = await this.repo.findByName(userId, dto.name);
         if (existing) throw DeckError.nameTaken(dto.name);

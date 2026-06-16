@@ -3,19 +3,19 @@ import { FollowRepository } from './follow.repository';
 import { FollowError } from './follow.error';
 import { paginate } from '../../common/utils/paginate.util';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { UserRepository } from '../users/user.repository';
+import { UserService } from '../users/user.service';
 
 @Injectable()
 export class FollowService {
     constructor(
         private readonly repo: FollowRepository,
-        private readonly userRepo: UserRepository,
+        private readonly userService: UserService,
     ) { }
 
     async follow(userId: string, targetId: string) {
         if (userId === targetId) throw FollowError.cannotFollowSelf();
 
-        const target = await this.userRepo.findById(targetId);
+        const target = await this.userService.findById(targetId);
         if (!target) throw FollowError.userNotFound();
 
         const existing = await this.repo.findFollow(userId, targetId);

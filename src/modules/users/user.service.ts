@@ -7,6 +7,10 @@ import { UserError } from './user.error';
 export class UserService {
     constructor(private readonly repo: UserRepository) { }
 
+    async findById(id: string) {
+        return this.repo.findById(id);
+    }
+
     async getProfile(userId: string) {
         const user = await this.repo.findById(userId);
         if (!user) throw UserError.notFound();
