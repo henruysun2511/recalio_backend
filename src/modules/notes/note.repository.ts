@@ -31,6 +31,21 @@ export class NoteRepository {
         return this.prisma.note.count({ where: { deckId, deletedAt: null } });
     }
 
+    async findAudioCache(text: string, language: string) {
+        return this.prisma.audioCache.findUnique({
+            where: { text_language: { text, language } },
+            select: { audioUrl: true },
+        });
+    }
+
+    async findSupportedLanguageIds() {
+        const languages = await this.prisma.language.findMany({
+            where: { isSupported: true },
+            select: { id: true },
+        });
+        return new Set(languages.map((l) => l.id));
+    }
+
     async createWithCards(userId: string, deckId: string, dto: CreateNoteDto, cardTemplateIds: string[]) {
         return this.prisma.$transaction(async (tx) => {
             const note = await tx.note.create({

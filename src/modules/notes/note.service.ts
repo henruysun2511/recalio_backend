@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../infrastructures/prisma/prisma.service';
 import { NoteRepository } from './note.repository';
 import { CreateNoteDto, UpdateNoteDto, BatchUpsertNotesDto, PreviewRequestDto, PreviewResponseDto } from './note.dto';
 import { NoteError } from './note.error';
@@ -13,18 +12,13 @@ import { detectLanguage } from './language.util';
 @Injectable()
 export class NoteService {
     constructor(
-        private readonly prisma: PrismaService,
         private readonly repo: NoteRepository,
         private readonly deckService: DeckService,
         private readonly noteTemplateService: NoteTemplateService,
     ) { }
 
     async preview(dto: PreviewRequestDto): Promise<PreviewResponseDto> {
-        const supportedLanguages = await this.prisma.language.findMany({
-            where: { isSupported: true },
-            select: { id: true },
-        });
-        const supportedSet = new Set(supportedLanguages.map((l) => l.id));
+        const supportedSet = await this.repo.findSupportedLanguageIds();
 
         const items = await Promise.all(
             dto.items.map(async (item) => {
@@ -35,10 +29,7 @@ export class NoteService {
                 }
 
                 const cache = detectedLanguage !== 'und'
-                    ? await this.prisma.audioCache.findUnique({
-                        where: { text_language: { text: item.text, language: detectedLanguage } },
-                        select: { audioUrl: true },
-                      })
+                    ? await this.repo.findAudioCache(item.text, detectedLanguage)
                     : null;
 
                 return {
