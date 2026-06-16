@@ -270,15 +270,6 @@ export class PreviewItemDto {
     audioUrl?: string;
 }
 
-export class PreviewRequestDto {
-    @ApiProperty({ type: [PreviewItemDto], example: [{ text: 'hello' }, { text: 'xin chào', languageId: 'vi' }] })
-    @IsArray({ message: 'items phải là mảng' })
-    @ArrayMinSize(1, { message: 'Phải có ít nhất 1 item' })
-    @ValidateNested({ each: true })
-    @Type(() => PreviewItemDto)
-    items: PreviewItemDto[];
-}
-
 export class PreviewResponseItemDto {
     @ApiProperty({ example: 'hello' })
     text: string;
