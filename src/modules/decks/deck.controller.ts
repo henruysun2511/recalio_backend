@@ -1,10 +1,12 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { DeckService } from './deck.service';
-import { CreateDeckDto, UpdateDeckDto, QueryDeckDto, DeckResponseDto } from './deck.dto';
+import { CreateDeckDto, UpdateDeckDto, MoveDeckDto, QueryDeckDto, DeckResponseDto } from './deck.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { SwaggerDoc } from '../../common/swagger/swagger-doc';
 
 @ApiTags('Decks')
@@ -35,12 +37,18 @@ export class DeckController {
         return this.service.getArchivedList(userId, dto);
     }
 
+    @Get('cloned')
+    @ResponseMessage('Lấy danh sách deck đã clone thành công')
+    @SwaggerDoc({ summary: 'List cloned decks', responseType: DeckResponseDto, isArray: true })
+    async getClonedList(@CurrentUser('id') userId: string, @Query() dto: QueryDeckDto) {
+        return this.service.getClonedList(userId, dto);
+    }
+
     @Get(':id')
-    @Public()
     @ResponseMessage('Lấy thông tin deck thành công')
     @SwaggerDoc({ summary: 'Get deck by id', responseType: DeckResponseDto })
-    async getById(@Param('id') id: string) {
-        return this.service.getById(id);
+    async getById(@CurrentUser('id') userId: string | undefined, @Param('id') id: string) {
+        return this.service.getById(id, userId);
     }
 
     @Post()
@@ -63,5 +71,27 @@ export class DeckController {
     @SwaggerDoc({ summary: 'Delete deck (owner only)' })
     async delete(@CurrentUser('id') userId: string, @Param('id') id: string) {
         await this.service.delete(userId, id);
+    }
+
+    @Patch(':id/move')
+    @ResponseMessage('Di chuyển deck thành công')
+    @SwaggerDoc({ summary: 'Move deck to folder (owner only)', bodyType: MoveDeckDto, responseType: DeckResponseDto })
+    async move(@CurrentUser('id') userId: string, @Param('id') id: string, @Body() dto: MoveDeckDto) {
+        return this.service.move(userId, id, dto);
+    }
+
+    @Post(':id/clone')
+    @ResponseMessage('Clone deck thành công')
+    @SwaggerDoc({ summary: 'Clone deck', responseType: DeckResponseDto, status: 201 })
+    async clone(@CurrentUser('id') userId: string, @Param('id') id: string) {
+        return this.service.clone(userId, id);
+    }
+
+    @Patch(':id/ban')
+    @Roles(UserRole.ADMIN)
+    @ResponseMessage('Cập nhật trạng thái cấm deck thành công')
+    @SwaggerDoc({ summary: 'Toggle ban deck (admin only)', responseType: DeckResponseDto })
+    async toggleBan(@Param('id') id: string) {
+        return this.service.toggleBan(id);
     }
 }

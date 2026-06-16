@@ -114,6 +114,13 @@ export class UpdateDeckDto {
     tags?: string[];
 }
 
+export class MoveDeckDto {
+    @ApiProperty({ example: 'uuid', nullable: true })
+    @IsOptional()
+    @IsString({ message: 'parentId phải là chuỗi kí tự' })
+    parentId?: string | null;
+}
+
 export class DeckUserDto {
     @ApiProperty({ example: 'uuid' })
     id: string;

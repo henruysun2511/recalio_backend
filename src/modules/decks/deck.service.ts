@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DeckRepository } from './deck.repository';
-import { CreateDeckDto, UpdateDeckDto, QueryDeckDto } from './deck.dto';
+import { CreateDeckDto, UpdateDeckDto, MoveDeckDto, QueryDeckDto } from './deck.dto';
 import { DeckError } from './deck.error';
 import { paginate } from '../../common/utils/paginate.util';
 
@@ -14,10 +14,16 @@ export class DeckService {
         return this.repo.create(userId, dto);
     }
 
-    async getById(id: string) {
-        const deck = await this.repo.findPublicById(id);
-        if (!deck) throw DeckError.notFound();
-        return deck;
+    async getById(id: string, userId?: string) {
+        const deck = await this.repo.findById(id);
+        if (!deck || deck.deletedAt) throw DeckError.notFound();
+        if (deck.isBanned) throw DeckError.notFound();
+        if (!deck.isPublic && deck.userId !== userId) throw DeckError.notFound();
+
+        if (deck.userId === userId) {
+            return this.repo.findByIdFull(id);
+        }
+        return this.repo.findPublicById(id);
     }
 
     async getPublicList(dto: QueryDeckDto) {
@@ -32,6 +38,11 @@ export class DeckService {
 
     async getArchivedList(userId: string, dto: QueryDeckDto) {
         const { items, total } = await this.repo.findArchivedDecks(userId, dto);
+        return paginate(items, total, dto);
+    }
+
+    async getClonedList(userId: string, dto: QueryDeckDto) {
+        const { items, total } = await this.repo.findClonedDecks(userId, dto);
         return paginate(items, total, dto);
     }
 
@@ -57,5 +68,45 @@ export class DeckService {
         if (!deck || deck.deletedAt) throw DeckError.notFound();
         if (deck.userId !== userId) throw DeckError.notOwner();
         return this.repo.softDelete(id);
+    }
+
+    async move(userId: string, id: string, dto: MoveDeckDto) {
+        const deck = await this.repo.findById(id);
+        if (!deck || deck.deletedAt) throw DeckError.notFound();
+        if (deck.userId !== userId) throw DeckError.notOwner();
+        return this.repo.move(id, dto.parentId ?? null);
+    }
+
+    async clone(userId: string, id: string) {
+        const source = await this.repo.findSourceForClone(id);
+        if (!source) throw DeckError.notFound();
+        if (source.userId === userId) throw DeckError.cannotCloneOwn();
+
+        const existing = await this.repo.findCloneByUser(userId, id);
+        if (existing) throw DeckError.alreadyCloned();
+
+        const [cloned] = await Promise.all([
+            this.repo.clone(userId, {
+                name: source.name,
+                fullPath: source.fullPath,
+                description: source.description,
+                coverImage: source.coverImage,
+                tags: source.tags,
+                sourceDeckId: source.id,
+            }),
+            this.repo.incrementDownloadCount(id),
+        ]);
+
+        return cloned;
+    }
+
+    async toggleBan(id: string) {
+        const deck = await this.repo.findById(id);
+        if (!deck || deck.deletedAt) throw DeckError.notFound();
+
+        if (deck.isBanned) {
+            return this.repo.unban(id);
+        }
+        return this.repo.ban(id);
     }
 }
