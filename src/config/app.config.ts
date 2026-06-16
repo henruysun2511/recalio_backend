@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 export const AppConfig = {
   NODE_ENV: process.env.NODE_ENV ?? 'development',
   PORT: parseInt(process.env.PORT ?? '3000', 10),
@@ -15,4 +17,20 @@ export const AppConfig = {
       (process.env.NODE_ENV === 'production' ? 'info' : 'silly'),
     LOGTAIL_LEVEL: process.env.LOGGER_LOGTAIL_LEVEL ?? 'warn',
   },
+
+  // JWT
+  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_TOKEN_SECRET ?? 'access-secret',
+  JWT_ACCESS_EXPIRE: process.env.JWT_ACCESS_TOKEN_EXPIRE ?? '15m',
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_TOKEN_SECRET ?? 'refresh-secret',
+  JWT_REFRESH_EXPIRE: process.env.JWT_REFRESH_TOKEN_EXPIRE ?? '7d',
+
+  // Cloudinary
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME ?? '',
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ?? '',
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ?? '',
+
+  // Google OAuth
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
+  GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:3000/auth/google/callback',
 };

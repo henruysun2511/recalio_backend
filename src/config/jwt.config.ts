@@ -1,7 +1,8 @@
+import { AppConfig } from './app.config';
+
 export const JwtConfig = {
-  ACCESS_TOKEN_SECRET: process.env.JWT_ACCESS_TOKEN_SECRET ?? 'access-secret',
-  ACCESS_TOKEN_EXPIRE: process.env.JWT_ACCESS_TOKEN_EXPIRE ?? '15m',
-  REFRESH_TOKEN_SECRET:
-    process.env.JWT_REFRESH_TOKEN_SECRET ?? 'refresh-secret',
-  REFRESH_TOKEN_EXPIRE: process.env.JWT_REFRESH_TOKEN_EXPIRE ?? '7d',
+  ACCESS_TOKEN_SECRET: AppConfig.JWT_ACCESS_SECRET,
+  ACCESS_TOKEN_EXPIRE: AppConfig.JWT_ACCESS_EXPIRE,
+  REFRESH_TOKEN_SECRET: AppConfig.JWT_REFRESH_SECRET,
+  REFRESH_TOKEN_EXPIRE: AppConfig.JWT_REFRESH_EXPIRE,
 };

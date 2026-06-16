@@ -5,11 +5,11 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { Prisma } from '../../../generated/prisma/client';
+import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import { AppConfig } from '../../config/app.config';
 import { ApiResponse } from '../interfaces/api-response.interface';
-import { CustomLogger } from '../../shared/logger/logger.service';
+import { CustomLogger } from '../../infrastructures/logger/logger.service';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {

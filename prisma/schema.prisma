@@ -1,40 +1,569 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-model Category {
-  categoryId  String     @id @default(uuid())
-  name        String     @unique
-  slug        String     @unique
-  description String?
-  depth       Int        @default(0)
-  sortOrder   Int        @default(0)
-  parentId    String?
-  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [categoryId])
-  children    Category[] @relation("CategoryTree")
-  posts       Post[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  deletedAt   DateTime?
+// ─── 1. LANGUAGE ───────────────────────────────────────────
+
+model Language {
+  id          String  @id // "en", "ja", "ko" — ISO 639-1
+  name        String
+  nativeName  String
+  flagEmoji   String
+  isSupported Boolean @default(false)
+
+  userLanguages UserLanguage[]
+  notes         Note[]
+
+  @@map("languages")
 }
 
-model Post {
-  postId     String    @id @default(uuid())
-  title      String
-  content    String
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [categoryId])
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?
+// ─── AUDIO CACHE (TTS) ────────────────────────────────────
+
+model AudioCache {
+  id       String   @id @default(uuid())
+  text     String
+  language String
+  audioUrl String
+  createdAt DateTime @default(now())
+
+  @@unique([text, language])
+  @@map("audio_cache")
+}
+
+// ─── 2. USER & AUTH ────────────────────────────────────────
+
+model User {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  email        String    @unique
+  passwordHash String?
+
+  // Google OAuth — chỉ dùng Google nên để trong User
+  googleId     String?   @unique  // providerId
+  // accessToken/refreshToken của Google không lưu (không cần gọi Google API sau login)
+
+  displayName  String
+  avatarUrl    String?
+  bio          String?
+  role         UserRole  @default(USER)
+  isActive     Boolean   @default(true)
+  timezone     String    @default("UTC")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  refreshTokens    RefreshToken[]
+  notifSetting     NotificationSetting?
+  userLanguages    UserLanguage[]
+  decks            Deck[]
+  notes            Note[]
+  cards            Card[]
+  reviewLogs       ReviewLog[]
+  studySessions    StudySession[]
+  deckReviews      DeckReview[]
+  reportedBy       DeckReport[]      @relation("ReportedBy")
+  reviewedBy       DeckReport[]      @relation("ReviewedBy")
+  userFollowers    UserFollow[]      @relation("Following")
+  userFollowing    UserFollow[]      @relation("Follower")
+  notifications    Notification[]
+  xpLogs           XPLog[]
+  userAchievements UserAchievement[]
+  dailyGoal        DailyGoal?
+  userXP           UserXP?
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  token     String    @unique
+  device    String?   // user-agent hoặc tên thiết bị
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model UserLanguage {
+  id         String   @id @default(uuid())
+  userId     String
+  languageId String
+  isActive   Boolean  @default(false)
+  startedAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  language Language @relation(fields: [languageId], references: [id])
+
+  @@unique([userId, languageId])
+  @@map("user_languages")
+}
+
+model NotificationSetting {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  emailEnabled  Boolean  @default(true)
+  pushEnabled   Boolean  @default(true)
+  studyReminder Boolean  @default(true)
+  reminderTime  String   @default("20:00") // "HH:mm"
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+// ─── 3. DECK ────────────────────────────────────────────────
+
+model Deck {
+  id           String    @id @default(uuid())
+  userId       String
+  parentId     String?
+  sourceDeckId String?   // deck gốc nếu được clone từ marketplace
+
+  name         String
+  fullPath     String    // "English::IELTS" — denormalized
+  description  String?
+  coverImage   String?
+  isArchived   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  // Marketplace
+  isPublic      Boolean   @default(false)
+  isBanned      Boolean   @default(false)
+  isFeatured    Boolean   @default(false)
+  tags          String[]
+  downloadCount Int       @default(0)
+  publishedAt   DateTime?
+
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent     Deck?        @relation("DeckTree", fields: [parentId], references: [id])
+  children   Deck[]       @relation("DeckTree")
+  sourceDeck Deck?        @relation("SourceDeck", fields: [sourceDeckId], references: [id])
+  clonedDecks Deck[]      @relation("SourceDeck")
+  setting    DeckSetting?
+  notes      Note[]
+  cards      Card[]
+  deckReviews DeckReview[]
+  reports    DeckReport[]
+  studySessions StudySession[]
+
+  @@index([userId])
+  @@index([fullPath])
+  @@index([isPublic, isBanned, publishedAt])  // marketplace listing
+  @@index([downloadCount])                    // sort most downloaded
+  @@map("decks")
+}
+
+// Override SRS defaults cho từng deck
+model DeckSetting {
+  id                 String      @id @default(uuid())
+  deckId             String      @unique
+  algorithm          Algorithm   @default(FSRS)
+  newCardsPerDay     Int         @default(20)
+  reviewsPerDay      Int         @default(200)
+  learningSteps      String      @default("1 10")
+  graduatingInterval Int         @default(1)
+  easyInterval       Int         @default(4)
+  intervalModifier   Float       @default(1.0)
+  easyBonus          Float       @default(1.3)
+  hardInterval       Float       @default(1.2)
+  maximumInterval    Int         @default(36500)
+  lapseSteps         String      @default("10")
+  minimumInterval    Int         @default(1)
+  leechThreshold     Int         @default(8)
+  leechAction        LeechAction @default(SUSPEND)
+  fsrsWeights        String?
+  requestRetention   Float       @default(0.9)
+  updatedAt          DateTime    @updatedAt
+
+  deck Deck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@map("deck_settings")
+}
+
+// ─── 4. NOTE & CARD ────────────────────────────────────────
+
+model NoteTemplate {
+  id            String           @id @default(uuid())
+  name          String
+  type          NoteTemplateType
+  fieldNames    String[]         // ["Word", "Meaning", "IPA", "Example"]
+
+  cardTemplates CardTemplate[]
+  notes         Note[]
+
+  @@map("note_templates")
+}
+
+model CardTemplate {
+  id             String       @id @default(uuid())
+  noteTemplateId String
+  name           String       // "Forward", "Reverse"
+  frontHtml      String       // "{{Word}}"
+  backHtml       String       // "{{Meaning}}<hr>{{IPA}}"
+  css            String       @default("")
+
+  noteTemplate NoteTemplate @relation(fields: [noteTemplateId], references: [id], onDelete: Cascade)
+  cards        Card[]
+
+  @@map("card_templates")
+}
+
+model Note {
+  id           String       @id @default(uuid())
+  userId       String
+  deckId       String
+  templateId   String
+  languageId   String
+  word         String?
+  meaning      String?
+  ipa          String?
+  partOfSpeech PartOfSpeech?
+  example      String?
+  audioUrl     String?
+  imageUrl     String?
+  tags         String[]
+  fields       Json          @default("{}") // extra fields theo template
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deck     Deck         @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  template NoteTemplate @relation(fields: [templateId], references: [id])
+  language Language     @relation(fields: [languageId], references: [id])
+  cards    Card[]
+
+  @@index([userId])
+  @@index([deckId])
+  @@index([tags])
+  @@map("notes")
+}
+
+model Card {
+  id             String       @id @default(uuid())
+  userId         String
+  noteId         String
+  cardTemplateId String
+  deckId         String       // denormalized — tránh JOIN qua Note
+
+  state          CardState    @default(NEW)
+  flags          Int          @default(0) // bitmask: 1=red 2=orange 4=green 8=blue
+
+  // SM-2
+  due            DateTime     @default(now())
+  interval       Int          @default(0)
+  easeFactor     Float        @default(2.5)
+  repetitions    Int          @default(0)
+  lapses         Int          @default(0)
+  currentStep    Int          @default(0)
+  lastReviewAt   DateTime?
+
+  // FSRS
+  fsrsStability  Float?
+  fsrsDifficulty Float?
+  // fsrsRetrievability không lưu — tính = e^(-t/stability)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note         Note         @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  cardTemplate CardTemplate @relation(fields: [cardTemplateId], references: [id])
+  deck         Deck         @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  reviewLogs   ReviewLog[]
+
+  @@index([userId, due])      // query due cards — quan trọng nhất
+  @@index([userId, state])
+  @@index([deckId, state])
+  @@map("cards")
+}
+
+// ─── 5. REVIEW ENGINE ──────────────────────────────────────
+
+model ReviewLog {
+  id             String       @id @default(uuid())
+  userId         String
+  cardId         String
+  sessionId      String?
+  rating         ReviewRating
+  stateBefore    CardState
+  stateAfter     CardState
+  intervalBefore Int
+  intervalAfter  Int
+  easeBefore     Float
+  easeAfter      Float
+  responseTimeMs Int
+  reviewedAt     DateTime     @default(now())
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card    Card          @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  session StudySession? @relation(fields: [sessionId], references: [id])
+
+  @@index([userId, reviewedAt]) // heatmap, analytics
+  @@index([cardId])
+  @@map("review_logs")
+}
+
+model StudySession {
+  id        String    @id @default(uuid())
+  userId    String
+  deckId    String?
+  mode      StudyMode @default(NORMAL)
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  // Không lưu counter — tính từ reviewLogs GROUP BY sessionId
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deck       Deck?       @relation(fields: [deckId], references: [id])
+  reviewLogs ReviewLog[]
+
+  @@index([userId, startedAt])
+  @@map("study_sessions")
+}
+
+// ─── 6. MARKETPLACE ────────────────────────────────────────
+
+model DeckReview {
+  id        String   @id @default(uuid())
+  deckId    String
+  userId    String
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deck Deck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([deckId, userId]) // 1 user 1 review per deck
+  @@map("deck_reviews")
+}
+
+model DeckReport {
+  id           String       @id @default(uuid())
+  reportedById String
+  deckId       String
+  reason       ReportReason
+  description  String?
+  status       ReportStatus @default(PENDING)
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  reportedBy User  @relation("ReportedBy", fields: [reportedById], references: [id])
+  deck       Deck  @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("ReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([status]) // admin filter PENDING reports
+  @@map("deck_reports")
+}
+
+model UserFollow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  followedAt  DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("user_follows")
+}
+
+// ─── 7. NOTIFICATIONS ──────────────────────────────────────
+
+model Notification {
+  id      String              @id @default(uuid())
+  userId  String
+  type    NotificationType
+  title   String
+  body    String?
+  data    Json?               // deep link payload
+  isRead  Boolean             @default(false)
+  channel NotificationChannel
+  sentAt  DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// ─── 8. GAMIFICATION ───────────────────────────────────────
+
+model DailyGoal {
+  id             String @id @default(uuid())
+  userId         String @unique
+  targetReviews  Int    @default(50)
+  targetNewCards Int    @default(20)
+
+  // Progress tính realtime từ review_logs WHERE DATE(reviewedAt) = TODAY
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("daily_goals")
+}
+
+model UserXP {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  totalXP       Int       @default(0)
+  level         Int       @default(1)  // cache từ totalXP
+  currentStreak Int       @default(0)
+  longestStreak Int       @default(0)
+  lastStudyDate DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_xp")
+}
+
+model XPLog {
+  id       String   @id @default(uuid())
+  userId   String
+  amount   Int
+  reason   XPReason
+  earnedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, earnedAt])
+  @@map("xp_logs")
+}
+
+model Achievement {
+  id          String @id @default(uuid())
+  key         String @unique // "STREAK_7", "REVIEWS_1000"
+  name        String
+  description String
+  iconUrl     String?
+  xpReward    Int    @default(0)
+  condition   Json   // { type: "streak", value: 7 }
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String
+  achievementId String
+  earnedAt      DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// ─── ENUMS ─────────────────────────────────────────────────
+
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum Algorithm {
+  SM2
+  FSRS
+}
+
+enum LeechAction {
+  SUSPEND
+  FLAG
+}
+
+enum NoteTemplateType {
+  BASIC
+  BASIC_REVERSED
+  CLOZE
+}
+
+enum PartOfSpeech {
+  NOUN
+  VERB
+  ADJECTIVE
+  ADVERB
+  PHRASE
+  CONJUNCTION
+  PREPOSITION
+  PRONOUN
+  INTERJECTION
+}
+
+enum CardState {
+  NEW
+  LEARNING
+  RELEARNING
+  REVIEW
+  SUSPENDED
+}
+
+enum ReviewRating {
+  AGAIN
+  HARD
+  GOOD
+  EASY
+}
+
+enum StudyMode {
+  NORMAL
+  CRAM
+  PREVIEW
+}
+
+enum NotificationType {
+  STUDY_REMINDER
+  CARDS_DUE
+  ACHIEVEMENT_EARNED
+  DECK_PUBLISHED
+  DECK_REPORTED
+  SYSTEM
+}
+
+enum NotificationChannel {
+  EMAIL
+  WEB_PUSH
+  MOBILE_PUSH
+}
+
+enum ReportReason {
+  COPYRIGHT
+  SPAM
+  INAPPROPRIATE
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+  ACTION_TAKEN
+}
+
+enum XPReason {
+  REVIEW_CARD
+  DAILY_GOAL_COMPLETED
+  ACHIEVEMENT_EARNED
+  STREAK_BONUS
 }
