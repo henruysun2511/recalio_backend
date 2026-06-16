@@ -1,9 +1,11 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ─── 1. LANGUAGE ───────────────────────────────────────────
@@ -41,11 +43,7 @@ model User {
   username     String    @unique
   email        String    @unique
   passwordHash String?
-
-  // Google OAuth — chỉ dùng Google nên để trong User
-  googleId     String?   @unique  // providerId
-  // accessToken/refreshToken của Google không lưu (không cần gọi Google API sau login)
-
+  googleId     String?   @unique  
   displayName  String
   avatarUrl    String?
   bio          String?

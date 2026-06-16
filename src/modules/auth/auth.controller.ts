@@ -9,6 +9,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator';
 import { SwaggerDoc } from '../../common/swagger/swagger-doc';
 import { AppConfig } from '../../config/app.config';
+import type { IUserRequest } from '../../common/interfaces/user-request.interface';
 
 @ApiTags('Auth')
 @Controller({ path: 'auth', version: '1' })
@@ -42,7 +43,7 @@ export class AuthController {
     @Public()
     @UseGuards(AuthGuard('google'))
     @SwaggerDoc({ summary: 'Google OAuth callback' })
-    async googleCallback(@CurrentUser() user: any, @Res() res: Response) {
+    async googleCallback(@CurrentUser() user: IUserRequest, @Res() res: Response) {
         const tokens = await this.service.generateTokens(user);
         const query = new URLSearchParams({
             accessToken: tokens.accessToken,

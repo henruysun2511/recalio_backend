@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { User } from '@prisma/client';
 import { AuthRepository } from './auth.repository';
 import { RegisterDto, LoginDto } from './auth.dto';
 import { AuthError } from './auth.error';
 import { AUTH_CONSTANTS } from './auth.constant';
+import { IUserRequest } from 'src/common/interfaces/user-request.interface';
 
 export interface GoogleProfile {
     googleId: string;
@@ -101,7 +101,7 @@ export class AuthService {
         await this.repo.revokeUserRefreshTokens(userId);
     }
 
-    async generateTokens(user: Pick<User, 'id' | 'username' | 'role' | 'displayName' | 'email' | 'avatarUrl'>) {
+    async generateTokens(user: IUserRequest) {
         const accessToken = this.jwt.sign({ sub: user.id, username: user.username, role: user.role });
 
         const refreshToken = crypto.randomBytes(AUTH_CONSTANTS.REFRESH_TOKEN_BYTES).toString('hex');
