@@ -20,14 +20,26 @@ export class NoteService {
     ) { }
 
     async preview(dto: PreviewRequestDto): Promise<PreviewResponseDto> {
+        const supportedLanguages = await this.prisma.language.findMany({
+            where: { isSupported: true },
+            select: { id: true },
+        });
+        const supportedSet = new Set(supportedLanguages.map((l) => l.id));
+
         const items = await Promise.all(
             dto.items.map(async (item) => {
-                const detectedLanguage = item.languageId ?? detectLanguage(item.text);
+                let detectedLanguage = item.languageId ?? detectLanguage(item.text);
 
-                const cache = await this.prisma.audioCache.findUnique({
-                    where: { text_language: { text: item.text, language: detectedLanguage } },
-                    select: { audioUrl: true },
-                });
+                if (!supportedSet.has(detectedLanguage)) {
+                    detectedLanguage = 'und';
+                }
+
+                const cache = detectedLanguage !== 'und'
+                    ? await this.prisma.audioCache.findUnique({
+                        where: { text_language: { text: item.text, language: detectedLanguage } },
+                        select: { audioUrl: true },
+                      })
+                    : null;
 
                 return {
                     text: item.text,
