@@ -6,7 +6,7 @@ export const AppConfig = {
   CLIENT_URL: process.env.CLIENT_URL ?? 'http://localhost:3000',
   IS_DEV: process.env.NODE_ENV === 'development',
   IS_PROD: process.env.NODE_ENV === 'production',
-  CORS_ORIGINS: process.env.CORS_ORIGINS?.split(',') ?? [
+  CORS_ORIGINS: process.env.CORS_ORIGINS?.split(',')?.filter(Boolean) || [
     'http://localhost:3000',
   ],
   CORS_METHODS: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -28,6 +28,14 @@ export const AppConfig = {
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME ?? '',
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ?? '',
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ?? '',
+
+  // Cloudinary
+  CLOUDINARY_AUDIO_FOLDER: process.env.CLOUDINARY_AUDIO_FOLDER ?? 'recalio/audio',
+
+  // Redis
+  REDIS_HOST: process.env.REDIS_HOST ?? 'localhost',
+  REDIS_PORT: parseInt(process.env.REDIS_PORT ?? '6379', 10),
+  REDIS_PASSWORD: process.env.REDIS_PASSWORD ?? '',
 
   // Google OAuth
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',

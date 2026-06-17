@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SharedModule } from './shared/shared.module';
@@ -12,9 +13,27 @@ import { LanguageModule } from './modules/languages/language.module';
 import { NoteTemplateModule } from './modules/note-templates/note-template.module';
 import { DeckSettingModule } from './modules/deck-settings/deck-setting.module';
 import { NoteModule } from './modules/notes/note.module';
+import { CardModule } from './modules/cards/card.module';
+import { StudySessionModule } from './modules/study-sessions/study-session.module';
+import { defaultQueueOptions } from './config/queue.config';
 
 @Module({
-    imports: [SharedModule, AuthModule, UserModule, DeckModule, FollowModule, ReportModule, ReviewModule, LanguageModule, NoteTemplateModule, DeckSettingModule, NoteModule],
+    imports: [
+        SharedModule,
+        BullModule.forRoot(defaultQueueOptions),
+        AuthModule,
+        UserModule,
+        DeckModule,
+        FollowModule,
+        ReportModule,
+        ReviewModule,
+        LanguageModule,
+        NoteTemplateModule,
+        DeckSettingModule,
+        NoteModule,
+        CardModule,
+        StudySessionModule,
+    ],
     controllers: [AppController],
     providers: [AppService],
 })

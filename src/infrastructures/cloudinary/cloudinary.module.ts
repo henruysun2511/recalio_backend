@@ -1,21 +1,15 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { CloudinaryConfig } from 'config';
-
+import { configureCloudinary } from '../../config/cloudinary.config';
 import { CloudinaryService } from './cloudinary.service';
 import { CloudinaryController } from './cloudinary.controller';
 
 @Module({
-  imports: [ConfigModule],
   controllers: [CloudinaryController],
-  providers: [
-    CloudinaryService,
-    {
-      provide: 'CLOUDINARY',
-      useFactory: (configService: ConfigService) => CloudinaryConfig(configService),
-      inject: [ConfigService]
-    }
-  ],
-  exports: [CloudinaryService]
+  providers: [CloudinaryService],
+  exports: [CloudinaryService],
 })
-export class CloudinaryModule {}
+export class CloudinaryModule {
+  constructor() {
+    configureCloudinary();
+  }
+}

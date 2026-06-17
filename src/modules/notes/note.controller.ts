@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { NoteService } from './note.service';
-import { CreateNoteDto, UpdateNoteDto, NoteResponseDto, BatchUpsertNotesDto, PreviewItemDto, PreviewResponseItemDto } from './note.dto';
+import { NoteResponseDto, UpdateNoteDto, PreviewNoteDto, ConfirmNoteDto } from './note.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator';
@@ -12,22 +12,6 @@ import { PaginationDto } from '../../common/dtos/pagination.dto';
 @Controller('notes')
 export class NoteController {
     constructor(private readonly service: NoteService) { }
-
-    @Post('decks/:deckId')
-    @ApiBearerAuth()
-    @ResponseMessage('Tạo note thành công')
-    @SwaggerDoc({ summary: 'Create a note', bodyType: CreateNoteDto, responseType: NoteResponseDto, status: 201 })
-    async create(@CurrentUser('id') userId: string, @Param('deckId') deckId: string, @Body() dto: CreateNoteDto) {
-        return this.service.create(userId, deckId, dto);
-    }
-
-    @Post('decks/:deckId/batch')
-    @ApiBearerAuth()
-    @ResponseMessage('Tạo/Cập nhật hàng loạt note thành công')
-    @SwaggerDoc({ summary: 'Batch upsert notes', bodyType: BatchUpsertNotesDto, responseType: NoteResponseDto, isArray: true, status: 201 })
-    async batchUpsert(@CurrentUser('id') userId: string, @Param('deckId') deckId: string, @Body() dto: BatchUpsertNotesDto) {
-        return this.service.batchUpsert(userId, deckId, dto);
-    }
 
     @Get('decks/:deckId')
     @Public()
@@ -43,10 +27,18 @@ export class NoteController {
 
     @Post('preview')
     @Public()
-    @ResponseMessage('Detect thành công')
-    @SwaggerDoc({ summary: 'Detect language and check audio cache', bodyType: PreviewItemDto, isArray: true, responseType: PreviewResponseItemDto })
-    async preview(@Body() dto: PreviewItemDto[]) {
+    @ResponseMessage('Preview thành công')
+    @SwaggerDoc({ summary: 'Detect language & check audio cache (batch)', bodyType: PreviewNoteDto })
+    async preview(@Body() dto: PreviewNoteDto) {
         return this.service.preview(dto);
+    }
+
+    @Post('confirm')
+    @ApiBearerAuth()
+    @ResponseMessage('Đang xử lý từ vựng')
+    @SwaggerDoc({ summary: 'Create/update notes & queue audio processing', bodyType: ConfirmNoteDto, status: 202 })
+    async confirm(@CurrentUser('id') userId: string, @Body() dto: ConfirmNoteDto) {
+        return this.service.confirm(dto, userId);
     }
 
     @Patch(':id')

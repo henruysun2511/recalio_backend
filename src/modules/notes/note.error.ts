@@ -1,4 +1,5 @@
 import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { NOTE_CONSTANTS } from './note.constant';
 
 export class NoteError {
     static notFound() {
@@ -18,6 +19,6 @@ export class NoteError {
     }
 
     static limitExceeded() {
-        return new BadRequestException('Deck đã đạt giới hạn 100 notes');
+        return new BadRequestException(`Deck đã đạt giới hạn ${NOTE_CONSTANTS.NOTES_PER_DECK_MAX} notes`);
     }
 }

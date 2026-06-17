@@ -1,31 +1,30 @@
 import { Body, Controller, Delete, Post, UploadedFile } from '@nestjs/common';
-import { MediaUploadInterceptor } from 'common/interceptors';
-import { ApiBearerAuth } from '@nestjs/swagger';
-import { Public } from 'common/decorators';
-
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { FileUploadInterceptor } from '../../common/interceptors/upload.interceptor';
+import { TimeoutInterceptor } from '../../common/interceptors/timeout.interceptor';
 import { CloudinaryService } from './cloudinary.service';
-import { DeleteMediaDto } from './dtos';
-import { CLOUDINARY_FOLDERS } from './constants';
+import { DeleteMediaDto } from './cloudinary.dto';
+import { CLOUDINARY_CONSTANTS } from './cloudinary.constant';
 
+@ApiTags('Cloudinaries')
 @ApiBearerAuth()
 @Controller('cloudinaries')
 export class CloudinaryController {
   constructor(private readonly cloudinaryService: CloudinaryService) {}
 
-  @Public()
   @Post('media')
-  @MediaUploadInterceptor()
-  async uploadImages(@UploadedFile() file: Express.Multer.File, @Body('folder') folder: string) {
-    return this.cloudinaryService.uploadMedia(file, folder);
-  }
-
-  @Post('avatars')
-  @MediaUploadInterceptor()
-  async uploadAvatar(@UploadedFile() file: Express.Multer.File) {
-    return this.cloudinaryService.uploadMedia(file, CLOUDINARY_FOLDERS.AVATAR);
+  @FileUploadInterceptor({
+    maxSizeKB: 512000,
+    allowedMimeTypes: [...CLOUDINARY_CONSTANTS.ALLOWED_MIME_TYPES],
+    errorMessage: 'Chỉ được upload ảnh và audio!',
+  })
+  @TimeoutInterceptor(120000)
+  async uploadMedia(@UploadedFile() file: Express.Multer.File) {
+    return this.cloudinaryService.uploadMedia(file);
   }
 
   @Delete('media')
+  @TimeoutInterceptor(30000)
   async deleteMedia(@Body() dto: DeleteMediaDto) {
     return this.cloudinaryService.deleteMedia(dto);
   }

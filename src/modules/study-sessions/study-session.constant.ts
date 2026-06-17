@@ -1,0 +1,4 @@
+export const SESSION_CONSTANTS = {
+    MAX_ACTIVE_SESSIONS: 5,
+    DEFAULT_LIMIT: 20,
+} as const;

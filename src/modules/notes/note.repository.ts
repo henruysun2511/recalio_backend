@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructures/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import { CreateNoteDto, UpdateNoteDto, BatchUpsertNoteItem } from './note.dto';
+import { UpdateNoteDto } from './note.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { SortOrder } from '../../common/enums/sort.enum';
 
@@ -31,58 +31,6 @@ export class NoteRepository {
         return this.prisma.note.count({ where: { deckId, deletedAt: null } });
     }
 
-    async findAudioCache(text: string, language: string) {
-        return this.prisma.audioCache.findUnique({
-            where: { text_language: { text, language } },
-            select: { audioUrl: true },
-        });
-    }
-
-    async findSupportedLanguageIds() {
-        const languages = await this.prisma.language.findMany({
-            where: { isSupported: true },
-            select: { id: true },
-        });
-        return new Set(languages.map((l) => l.id));
-    }
-
-    async createWithCards(userId: string, deckId: string, dto: CreateNoteDto, cardTemplateIds: string[]) {
-        return this.prisma.$transaction(async (tx) => {
-            const note = await tx.note.create({
-                data: {
-                    userId,
-                    deckId,
-                    templateId: dto.templateId,
-                    languageId: dto.languageId,
-                    word: dto.word,
-                    meaning: dto.meaning,
-                    ipa: dto.ipa,
-                    partOfSpeech: dto.partOfSpeech,
-                    example: dto.example,
-                    audioUrl: dto.audioUrl,
-                    imageUrl: dto.imageUrl,
-                    tags: dto.tags ?? [],
-                    fields: (dto.fields ?? {}) as Prisma.InputJsonValue,
-                },
-                select: noteSelect,
-            });
-
-            if (cardTemplateIds.length) {
-                await tx.card.createMany({
-                    data: cardTemplateIds.map((cardTemplateId) => ({
-                        id: crypto.randomUUID(),
-                        userId,
-                        noteId: note.id,
-                        cardTemplateId,
-                        deckId,
-                    })),
-                });
-            }
-
-            return note;
-        });
-    }
-
     async findByDeck(deckId: string, dto: PaginationDto) {
         const where = { deckId, deletedAt: null };
 
@@ -103,7 +51,7 @@ export class NoteRepository {
     async findById(id: string) {
         return this.prisma.note.findUnique({
             where: { id },
-            select: { ...noteSelect, userId: true },
+            select: noteSelect,
         });
     }
 
@@ -126,64 +74,49 @@ export class NoteRepository {
         });
     }
 
-    async batchUpsert(userId: string, deckId: string, items: BatchUpsertNoteItem[], cardTemplateMap: Record<string, string[]>) {
+    async createBatch(
+        userId: string, deckId: string,
+        items: { templateId: string; languageId: string; word?: string; meaning?: string; ipa?: string; partOfSpeech?: string; example?: string; audioUrl?: string; imageUrl?: string; tags?: string[]; fields?: Record<string, unknown> }[],
+        cardTemplateMap: Record<string, string[]>,
+    ) {
         return this.prisma.$transaction(async (tx) => {
-            const allIds: string[] = [];
-            const createData: any[] = [];
-            const createCardData: any[] = [];
-            const updatePairs: { id: string; data: any }[] = [];
+            const notes = items.map((w) => ({
+                id: crypto.randomUUID(),
+                userId,
+                deckId,
+                templateId: w.templateId,
+                languageId: w.languageId,
+                word: w.word,
+                meaning: w.meaning,
+                ipa: w.ipa,
+                partOfSpeech: w.partOfSpeech,
+                example: w.example,
+                audioUrl: w.audioUrl ?? null,
+                imageUrl: w.imageUrl ?? null,
+                tags: w.tags ?? [],
+                fields: (w.fields ?? {}) as Prisma.InputJsonValue,
+            }));
 
-            for (const item of items) {
-                const data: any = {
-                    templateId: item.templateId,
-                    languageId: item.languageId,
-                    word: item.word,
-                    meaning: item.meaning,
-                    ipa: item.ipa,
-                    partOfSpeech: item.partOfSpeech,
-                    example: item.example,
-                    audioUrl: item.audioUrl,
-                    imageUrl: item.imageUrl,
-                    tags: item.tags ?? [],
-                };
-                if (item.fields) {
-                    data.fields = item.fields as Prisma.InputJsonValue;
-                }
+            await tx.note.createMany({ data: notes as any });
 
-                if (item.id) {
-                    allIds.push(item.id);
-                    updatePairs.push({ id: item.id, data });
-                } else {
-                    const id = crypto.randomUUID();
-                    allIds.push(id);
-                    createData.push({ id, userId, deckId, ...data });
+            const cardData = notes.flatMap((n) => {
+                const ctIds = cardTemplateMap[n.templateId] ?? [];
+                return ctIds.map((ctId) => ({
+                    id: crypto.randomUUID(),
+                    userId,
+                    noteId: n.id,
+                    cardTemplateId: ctId,
+                    deckId,
+                }));
+            });
 
-                    const ctIds = cardTemplateMap[item.templateId] ?? [];
-                    for (const cardTemplateId of ctIds) {
-                        createCardData.push({
-                            id: crypto.randomUUID(),
-                            userId,
-                            noteId: id,
-                            cardTemplateId,
-                            deckId,
-                        });
-                    }
-                }
-            }
-
-            if (createData.length) {
-                await tx.note.createMany({ data: createData });
-            }
-            if (createCardData.length) {
-                await tx.card.createMany({ data: createCardData });
-            }
-            for (const { id, data } of updatePairs) {
-                await tx.note.update({ where: { id }, data });
+            if (cardData.length) {
+                await tx.card.createMany({ data: cardData });
             }
 
             return tx.note.findMany({
-                where: { id: { in: allIds } },
-                select: noteSelect,
+                where: { id: { in: notes.map((n) => n.id) } },
+                select: { id: true, word: true, languageId: true, audioUrl: true },
             });
         });
     }
