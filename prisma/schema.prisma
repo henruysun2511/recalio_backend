@@ -1,11 +1,9 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ─── 1. LANGUAGE ───────────────────────────────────────────
@@ -68,7 +66,6 @@ model User {
   userFollowers    UserFollow[]      @relation("Following")
   userFollowing    UserFollow[]      @relation("Follower")
   notifications    Notification[]
-  xpLogs           XPLog[]
   userAchievements UserAchievement[]
   dailyGoal        DailyGoal?
   userXP           UserXP?
@@ -383,19 +380,21 @@ model UserFollow {
 // ─── 7. NOTIFICATIONS ──────────────────────────────────────
 
 model Notification {
-  id      String              @id @default(uuid())
-  userId  String
-  type    NotificationType
-  title   String
-  body    String?
-  data    Json?               // deep link payload
-  isRead  Boolean             @default(false)
-  channel NotificationChannel
-  sentAt  DateTime            @default(now())
+  id           String              @id @default(uuid())
+  userId       String
+  type         NotificationType
+  title        String
+  body         String?
+  data         Json?               // deep link payload
+  isRead       Boolean             @default(false)
+  channel      NotificationChannel
+  sentAt       DateTime            @default(now())
+  emailSentAt  DateTime?           // thoi gian gui email thanh cong
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
+  @@index([channel, emailSentAt])
   @@map("notifications")
 }
 
@@ -415,31 +414,19 @@ model DailyGoal {
 }
 
 model UserXP {
-  id            String    @id @default(uuid())
-  userId        String    @unique
-  totalXP       Int       @default(0)
-  level         Int       @default(1)  // cache từ totalXP
-  currentStreak Int       @default(0)
-  longestStreak Int       @default(0)
-  lastStudyDate DateTime?
-  updatedAt     DateTime  @updatedAt
+  id                 String    @id @default(uuid())
+  userId             String    @unique
+  totalXP            Int       @default(0)
+  level              Int       @default(1)  // cache từ totalXP
+  currentStreak      Int       @default(0)
+  longestStreak      Int       @default(0)
+  lastStudyDate      DateTime?
+  dailyGoalClaimedAt DateTime?
+  updatedAt          DateTime  @updatedAt
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_xp")
-}
-
-model XPLog {
-  id       String   @id @default(uuid())
-  userId   String
-  amount   Int
-  reason   XPReason
-  earnedAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, earnedAt])
-  @@map("xp_logs")
 }
 
 model Achievement {
@@ -530,12 +517,12 @@ enum NotificationType {
   STUDY_REMINDER
   CARDS_DUE
   ACHIEVEMENT_EARNED
-  DECK_PUBLISHED
   DECK_REPORTED
   DECK_BANNED
   SYSTEM
 }
 
+// EMAIL: d� d�ng. WEB_PUSH, MOBILE_PUSH: t?m ?n, chua tri?n khai
 enum NotificationChannel {
   EMAIL
   WEB_PUSH
@@ -556,9 +543,4 @@ enum ReportStatus {
   ACTION_TAKEN
 }
 
-enum XPReason {
-  REVIEW_CARD
-  DAILY_GOAL_COMPLETED
-  ACHIEVEMENT_EARNED
-  STREAK_BONUS
-}
+

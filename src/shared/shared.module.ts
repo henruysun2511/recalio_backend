@@ -5,8 +5,8 @@ import { APP_FILTER } from '@nestjs/core';
 import { GlobalExceptionFilter } from '../common/filters/global-exception.filter';
 
 import { JwtConfig } from '../config/jwt.config';
-import { LoggerModule } from 'src/infrastructures/logger/logger.module';
-import { PrismaModule } from 'src/infrastructures/prisma/prisma.module';
+import { LoggerModule } from '../infrastructures/logger/logger.module';
+import { PrismaModule } from '../infrastructures/prisma/prisma.module';
 
 @Global()
 @Module({

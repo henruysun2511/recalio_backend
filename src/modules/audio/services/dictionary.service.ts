@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v2 as cloudinary } from 'cloudinary';
-import { AppConfig } from '../../config/app.config';
+import { AppConfig } from '../../../config/app.config';
 
 const DICTIONARY_API = 'https://api.dictionaryapi.dev/api/v2/entries/en';
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructures/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, CardState } from '@prisma/client';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { CARD_CONSTANTS } from './card.constant';
 
@@ -40,7 +40,7 @@ export class CardRepository {
     async findDueCards(userId: string, deckId?: string, limit: number = CARD_CONSTANTS.DEFAULT_LIMIT) {
         const where: Prisma.CardWhereInput = {
             userId,
-            state: { in: ['NEW', 'LEARNING', 'RELEARNING', 'REVIEW'] },
+            state: { in: [CardState.NEW, CardState.LEARNING, CardState.RELEARNING, CardState.REVIEW] },
             due: { lte: new Date() },
             note: { deletedAt: null },
             ...(deckId ? { deckId } : {}),
@@ -101,7 +101,7 @@ export class CardRepository {
     async countByState(userId: string, deckId?: string) {
         const where: Prisma.CardWhereInput = {
             userId,
-            state: { not: 'SUSPENDED' },
+            state: { not: CardState.SUSPENDED },
             note: { deletedAt: null },
             ...(deckId ? { deckId } : {}),
         };
@@ -118,11 +118,33 @@ export class CardRepository {
         }
 
         const dueCount = await this.prisma.card.count({
-            where: { ...where, due: { lte: new Date() }, state: { in: ['LEARNING', 'RELEARNING', 'REVIEW'] } },
+            where: { ...where, due: { lte: new Date() }, state: { in: [CardState.LEARNING, CardState.RELEARNING, CardState.REVIEW] } },
         });
         result.due = dueCount;
 
         return result as { NEW: number; LEARNING: number; REVIEW: number; due: number };
+    }
+
+    async findByDeck(userId: string, deckId: string, state?: string, page = 1, limit = 20) {
+        const where: Prisma.CardWhereInput = {
+            userId,
+            deckId,
+            note: { deletedAt: null },
+            ...(state ? { state } : {} as any),
+        };
+
+        const [items, total] = await Promise.all([
+            this.prisma.card.findMany({
+                where,
+                orderBy: [{ state: 'asc' }, { due: 'asc' }],
+                skip: (page - 1) * limit,
+                take: limit,
+                select: cardWithNoteSelect,
+            }),
+            this.prisma.card.count({ where }),
+        ]);
+
+        return { items, total };
     }
 
     async createReviewLog(data: Prisma.ReviewLogCreateInput) {

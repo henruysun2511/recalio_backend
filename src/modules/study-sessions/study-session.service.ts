@@ -3,6 +3,7 @@ import { StudySessionRepository } from './study-session.repository';
 import { DeckService } from '../decks/deck.service';
 import { SessionError } from './study-session.error';
 import { SESSION_CONSTANTS } from './study-session.constant';
+import { StudyMode } from '@prisma/client';
 import { StartSessionDto, ListSessionQueryDto, SessionResponseDto } from './study-session.dto';
 import { paginate } from '../../common/utils/paginate.util';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
@@ -27,7 +28,7 @@ export class StudySessionService {
             throw SessionError.tooManyActive();
         }
 
-        const session = await this.repo.create(userId, dto.deckId, dto.mode ?? 'NORMAL');
+        const session = await this.repo.create(userId, dto.deckId, dto.mode ?? StudyMode.NORMAL);
         this.logger.log(`User ${userId}: started session ${session.id}`);
         return session;
     }

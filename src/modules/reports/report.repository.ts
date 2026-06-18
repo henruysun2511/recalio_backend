@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructures/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, UserRole, ReportStatus } from '@prisma/client';
 import { CreateReportDto, UpdateReportStatusDto } from './report.dto';
 import { SortOrder } from '../../common/enums/sort.enum';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
@@ -23,7 +23,7 @@ export class ReportRepository {
 
     async findExistingReport(reportedById: string, deckId: string) {
         return this.prisma.deckReport.findFirst({
-            where: { reportedById, deckId, status: 'PENDING' },
+            where: { reportedById, deckId, status: ReportStatus.PENDING },
             select: { id: true },
         });
     }
@@ -61,6 +61,14 @@ export class ReportRepository {
             where: { id },
             select: reportAdminSelect,
         });
+    }
+
+    async findAdminIds() {
+        const admins = await this.prisma.user.findMany({
+            where: { role: UserRole.ADMIN, isActive: true, deletedAt: null },
+            select: { id: true },
+        });
+        return admins.map((a) => a.id);
     }
 
     async updateStatus(id: string, dto: UpdateReportStatusDto) {

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AudioCacheRepository } from './audio-cache.repository';
+import { AudioCacheRepository } from '../audio-cache.repository';
 
 @Injectable()
 export class AudioCacheService {

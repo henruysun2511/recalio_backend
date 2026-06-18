@@ -29,6 +29,10 @@ export const AppConfig = {
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ?? '',
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ?? '',
 
+  AI_PROVIDER: process.env.AI_PROVIDER ?? 'gemini',
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY ?? '',
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? '',
+
   // Cloudinary
   CLOUDINARY_AUDIO_FOLDER: process.env.CLOUDINARY_AUDIO_FOLDER ?? 'recalio/audio',
 
@@ -41,4 +45,12 @@ export const AppConfig = {
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
   GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:3000/auth/google/callback',
+
+  // SMTP
+  SMTP_HOST: process.env.SMTP_HOST ?? 'smtp.gmail.com',
+  SMTP_PORT: parseInt(process.env.SMTP_PORT ?? '587', 10),
+  SMTP_USER: process.env.SMTP_USER ?? '',
+  SMTP_PASS: process.env.SMTP_PASS ?? '',
+  SMTP_FROM_NAME: process.env.SMTP_FROM_NAME ?? 'Recalio',
+  SMTP_FROM_EMAIL: process.env.SMTP_FROM_EMAIL ?? 'noreply@recalio.app',
 };

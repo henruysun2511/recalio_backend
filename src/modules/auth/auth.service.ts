@@ -6,7 +6,7 @@ import { AuthRepository } from './auth.repository';
 import { RegisterDto, LoginDto } from './auth.dto';
 import { AuthError } from './auth.error';
 import { AUTH_CONSTANTS } from './auth.constant';
-import { IUserRequest } from 'src/common/interfaces/user-request.interface';
+import { IUserRequest } from '../../common/interfaces/user-request.interface';
 
 export interface GoogleProfile {
     googleId: string;

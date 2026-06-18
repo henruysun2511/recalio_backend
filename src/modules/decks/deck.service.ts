@@ -1,13 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DeckRepository } from './deck.repository';
 import { CreateDeckDto, UpdateDeckDto, MoveDeckDto, QueryDeckDto } from './deck.dto';
 import { DeckError } from './deck.error';
 import { DECK_CONSTANTS } from './deck.constant';
 import { paginate } from '../../common/utils/paginate.util';
+import { NotificationService } from '../notifications/notification.service';
+import { NotificationType } from '@prisma/client';
 
 @Injectable()
 export class DeckService {
-    constructor(private readonly repo: DeckRepository) { }
+    private readonly logger = new Logger(DeckService.name);
+
+    constructor(
+        private readonly repo: DeckRepository,
+        private readonly notificationService: NotificationService,
+    ) { }
 
     async getOwner(id: string) {
         const deck = await this.repo.findById(id);
@@ -121,6 +128,17 @@ export class DeckService {
         if (deck.isBanned) {
             return this.repo.unban(id);
         }
-        return this.repo.ban(id);
+        const result = await this.repo.ban(id);
+
+        await this.notificationService.notifyUser(
+            deck.userId,
+            NotificationType.DECK_BANNED,
+            'Deck của bạn đã bị cấm',
+            `Deck "${deck.name}" đã bị admin khóa vì vi phạm quy định`,
+            { deckId: id },
+        );
+        this.logger.log(`Deck ${id}: notified owner ${deck.userId} about ban`);
+
+        return result;
     }
 }

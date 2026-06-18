@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructures/prisma/prisma.service';
-import { Prisma, StudyMode } from '@prisma/client';
+import { Prisma, StudyMode, ReviewRating } from '@prisma/client';
 
 const sessionSelect = {
     id: true,
@@ -73,10 +73,10 @@ export class StudySessionRepository {
         let again = 0, hard = 0, good = 0, easy = 0;
         for (const row of result) {
             totalTimeMs += row._sum.responseTimeMs ?? 0;
-            if (row.rating === 'AGAIN') again = row._count;
-            else if (row.rating === 'HARD') hard = row._count;
-            else if (row.rating === 'GOOD') good = row._count;
-            else if (row.rating === 'EASY') easy = row._count;
+            if (row.rating === ReviewRating.AGAIN) again = row._count;
+            else if (row.rating === ReviewRating.HARD) hard = row._count;
+            else if (row.rating === ReviewRating.GOOD) good = row._count;
+            else if (row.rating === ReviewRating.EASY) easy = row._count;
         }
 
         return {

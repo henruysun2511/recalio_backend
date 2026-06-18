@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructures/prisma/prisma.service';
 import { CreateDeckDto, UpdateDeckDto, QueryDeckDto } from './deck.dto';
 import { SortOrder } from '../../common/enums/sort.enum';
-import { Prisma } from '@prisma/client';
+import { Prisma, CardState } from '@prisma/client';
 
 const deckListSelect = {
     id: true,
@@ -321,7 +321,7 @@ export class DeckRepository {
                         cardTemplateId: card.cardTemplateId,
                         deckId: newDeckId,
                         flags: card.flags,
-                        state: 'NEW' as const,
+                        state: CardState.NEW,
                         due: new Date(),
                         interval: 0,
                         easeFactor: 2.5,

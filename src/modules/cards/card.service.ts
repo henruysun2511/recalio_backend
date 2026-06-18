@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CardRepository } from './card.repository';
 import { DeckService } from '../decks/deck.service';
+import { GamificationService } from '../gamification/gamification.service';
 import { CardError } from './card.error';
 import { DueCardsQueryDto, ReviewCardDto, CardResponseDto, CardStatsDto } from './card.dto';
 import { CardState, ReviewRating } from '@prisma/client';
@@ -15,6 +16,7 @@ export class CardService {
     constructor(
         private readonly repo: CardRepository,
         private readonly deckService: DeckService,
+        private readonly gamificationService: GamificationService,
     ) { }
 
     async getDueCards(userId: string, dto: DueCardsQueryDto) {
@@ -30,6 +32,14 @@ export class CardService {
         return paginate(items.map((item) => this.toResponse(item)), total, { page, limit } as PaginationDto);
     }
 
+    async findByDeck(userId: string, deckId: string, state?: string, page: number = 1, limit: number = CARD_CONSTANTS.DEFAULT_LIMIT) {
+        const ownerId = await this.deckService.checkReadAccess(deckId, userId);
+        if (!ownerId) throw CardError.notFound();
+
+        const { items, total } = await this.repo.findByDeck(userId, deckId, state, page, limit);
+        return paginate(items.map((item) => this.toResponse(item)), total, { page, limit } as PaginationDto);
+    }
+
     async getCard(userId: string, id: string): Promise<CardResponseDto> {
         const card = await this.repo.findById(id);
         if (!card) throw CardError.notFound();
@@ -42,7 +52,7 @@ export class CardService {
         const card = await this.repo.findById(id);
         if (!card) throw CardError.notFound();
         if (card.userId !== userId) throw CardError.notOwner();
-        if (card.state === 'SUSPENDED') throw CardError.suspended();
+        if (card.state === CardState.SUSPENDED) throw CardError.suspended();
 
         const now = new Date();
         const intervalBefore = card.interval;
@@ -80,6 +90,8 @@ export class CardService {
 
         await this.repo.createReviewLog(reviewLogData);
 
+        const gamification = await this.gamificationService.awardReviewXp(userId);
+
         this.logger.log(`Card ${id} reviewed: ${card.state}→${result.newState}, rating=${dto.rating}`);
 
         return {
@@ -87,6 +99,9 @@ export class CardService {
             due: result.newDue,
             interval: result.newInterval,
             easeFactor: result.newEase,
+            xpEarned: gamification.xpEarned,
+            dailyGoalBonus: gamification.dailyGoalBonus,
+            achievementUnlocked: gamification.achievementUnlocked,
         };
     }
 
@@ -103,7 +118,7 @@ export class CardService {
         if (!card) throw CardError.notFound();
         if (card.userId !== userId) throw CardError.notOwner();
 
-        const newState = card.state === 'SUSPENDED' ? 'NEW' : 'SUSPENDED';
+        const newState = card.state === CardState.SUSPENDED ? CardState.NEW : CardState.SUSPENDED;
         await this.repo.update(id, { state: newState });
     }
 
@@ -149,7 +164,7 @@ export class CardService {
         const minutes = (m: number) => new Date(now.getTime() + m * 60000);
 
         switch (state) {
-            case 'NEW': {
+            case CardState.NEW: {
                 if (rating === ReviewRating.AGAIN) {
                     newState = CardState.NEW;
                     newInterval = 0;
@@ -174,8 +189,8 @@ export class CardService {
                 break;
             }
 
-            case 'LEARNING':
-            case 'RELEARNING': {
+            case CardState.LEARNING:
+            case CardState.RELEARNING: {
                 if (rating === ReviewRating.AGAIN) {
                     newState = state;
                     newInterval = CARD_CONSTANTS.LEARNING_STEPS[0];
@@ -203,7 +218,7 @@ export class CardService {
                 break;
             }
 
-            case 'REVIEW': {
+            case CardState.REVIEW: {
                 if (rating === ReviewRating.AGAIN) {
                     newState = CardState.RELEARNING;
                     newInterval = CARD_CONSTANTS.RELEARNING_STEPS[0];
@@ -232,7 +247,7 @@ export class CardService {
 
         newInterval = Math.min(newInterval, CARD_CONSTANTS.MAX_INTERVAL);
 
-        const newDue = ['LEARNING', 'RELEARNING'].includes(newState)
+        const newDue = newState === CardState.LEARNING || newState === CardState.RELEARNING
             ? minutes(newInterval)
             : new Date(now.getTime() + newInterval * 86400000);
 

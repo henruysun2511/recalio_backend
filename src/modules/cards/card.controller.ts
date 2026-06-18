@@ -1,16 +1,31 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { CardService } from './card.service';
+import { CardState } from '@prisma/client';
 import { DueCardsQueryDto, ReviewCardDto, FlagCardDto, CardResponseDto, CardStatsDto } from './card.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator';
 import { SwaggerDoc } from '../../common/swagger/swagger-doc';
+import { PaginationDto } from '../../common/dtos/pagination.dto';
 
 @ApiTags('Cards')
 @ApiBearerAuth()
 @Controller('cards')
 export class CardController {
     constructor(private readonly service: CardService) { }
+
+    @Get('decks/:deckId')
+    @ResponseMessage('Lấy danh sách card của deck')
+    @SwaggerDoc({ summary: 'List cards of a deck', responseType: CardResponseDto, isArray: true })
+    @ApiQuery({ name: 'state', required: false, enum: CardState })
+    async findByDeck(
+        @CurrentUser('id') userId: string,
+        @Param('deckId') deckId: string,
+        @Query('state') state: string | undefined,
+        @Query() dto: PaginationDto,
+    ) {
+        return this.service.findByDeck(userId, deckId, state, dto.page, dto.limit as number);
+    }
 
     @Get('due')
     @ResponseMessage('Lấy danh sách card đến hạn')
