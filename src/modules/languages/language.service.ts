@@ -1,6 +1,6 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { LanguageRepository } from './language.repository';
-import { CreateLanguageDto, UpdateLanguageDto } from './language.dto';
+import { CreateLanguageDto, UpdateLanguageDto, LanguageQueryDto } from './language.dto';
 import { LanguageError } from './language.error';
 
 const franc = require('franc');
@@ -64,8 +64,8 @@ export class LanguageService implements OnApplicationBootstrap {
         return result;
     }
 
-    async findAll() {
-        return this.repo.findAll();
+    async findAll(query?: LanguageQueryDto) {
+        return this.repo.findAll(query);
     }
 
     async findAllSupported() {

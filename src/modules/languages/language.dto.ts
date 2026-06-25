@@ -69,6 +69,20 @@ export class UpdateLanguageDto {
     isSupported?: boolean;
 }
 
+export class LanguageQueryDto {
+    @ApiPropertyOptional({ example: 'english' })
+    @IsOptional()
+    @IsString({ message: 'Từ khóa tìm kiếm phải là chuỗi kí tự' })
+    @Transform(({ value }) => value?.trim())
+    search?: string;
+
+    @ApiPropertyOptional({ example: true })
+    @IsOptional()
+    @IsBoolean({ message: 'isSupported phải là boolean' })
+    @Transform(({ value }) => value === true || value === 'true')
+    isSupported?: boolean;
+}
+
 export class LanguageResponseDto {
     @ApiProperty({ example: 'en' })
     id: string;

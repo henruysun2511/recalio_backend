@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { NoteRepository } from './note.repository';
-import { UpdateNoteDto, PreviewNoteDto, ConfirmNoteDto } from './note.dto';
+import { UpdateNoteDto, PreviewNoteDto, ConfirmNoteDto, CreateDocumentNotesDto } from './note.dto';
 import { NoteError } from './note.error';
 import { paginate } from '../../common/utils/paginate.util';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
@@ -232,6 +232,25 @@ export class NoteService {
         if (!ownerId || ownerId !== userId) throw NoteError.notOwner();
 
         return this.repo.update(id, dto);
+    }
+
+    async createDocumentNotes(userId: string, dto: CreateDocumentNotesDto) {
+        const ownerId = await this.deckService.getOwner(dto.deckId);
+        if (!ownerId) throw NoteError.deckNotFound();
+        if (ownerId !== userId) throw NoteError.notOwner();
+
+        const cardTemplateIds = await this.noteTemplateService.getCardTemplateIds(dto.templateId);
+        const cardTemplateMap: Record<string, string[]> = { [dto.templateId]: cardTemplateIds };
+
+        const created = await this.repo.createDocumentNotes(
+            userId,
+            dto.deckId,
+            dto.templateId,
+            dto.languageId,
+            dto.items,
+            cardTemplateMap,
+        );
+        return { created: created.length };
     }
 
     async delete(userId: string, id: string) {

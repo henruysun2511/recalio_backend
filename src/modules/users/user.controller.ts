@@ -1,8 +1,9 @@
-import { Controller, Get, Patch, Body } from '@nestjs/common';
+import { Controller, Get, Patch, Body, Query, Param } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { UserService } from './user.service';
-import { UpdateUserDto } from './user.dto';
+import { UpdateUserDto, UserQueryDto, UpdateUserRoleDto } from './user.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator';
 import { SwaggerDoc } from '../../common/swagger/swagger-doc';
 
@@ -24,5 +25,29 @@ export class UserController {
     @SwaggerDoc({ summary: 'Update current user profile', bodyType: UpdateUserDto })
     async updateProfile(@CurrentUser('id') userId: string, @Body() dto: UpdateUserDto) {
         return this.service.updateProfile(userId, dto);
+    }
+
+    @Get()
+    @Roles('ADMIN')
+    @ResponseMessage('Lấy danh sách người dùng thành công')
+    @SwaggerDoc({ summary: 'List users (admin)' })
+    async findAll(@Query() dto: UserQueryDto) {
+        return this.service.findAll(dto);
+    }
+
+    @Patch(':id/toggle-active')
+    @Roles('ADMIN')
+    @ResponseMessage('Cập nhật trạng thái người dùng thành công')
+    @SwaggerDoc({ summary: 'Toggle user active status (admin)' })
+    async toggleActive(@Param('id') id: string) {
+        return this.service.toggleActive(id);
+    }
+
+    @Patch(':id/role')
+    @Roles('ADMIN')
+    @ResponseMessage('Cập nhật vai trò người dùng thành công')
+    @SwaggerDoc({ summary: 'Update user role (admin)', bodyType: UpdateUserRoleDto })
+    async updateRole(@Param('id') id: string, @Body() dto: UpdateUserRoleDto) {
+        return this.service.updateRole(id, dto);
     }
 }

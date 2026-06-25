@@ -19,6 +19,7 @@ import { StudySessionModule } from './modules/study-sessions/study-session.modul
 import { NotificationModule } from './modules/notifications/notification.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
 import { AiModule } from './modules/ai/ai.module';
+import { PostModule } from './modules/posts/post.module';
 import { defaultQueueOptions } from './config/queue.config';
 
 @Module({
@@ -41,6 +42,7 @@ import { defaultQueueOptions } from './config/queue.config';
         NotificationModule,
         GamificationModule,
         AiModule,
+        PostModule,
     ],
     controllers: [AppController],
     providers: [AppService],

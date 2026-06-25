@@ -1,6 +1,7 @@
-import { IsOptional, IsString, MaxLength } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { IsOptional, IsString, MaxLength, IsIn, IsBoolean, IsInt, Min, Max, IsEnum } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { USER_CONSTANTS } from './user.constant';
 
 export class UpdateUserDto {
@@ -22,4 +23,53 @@ export class UpdateUserDto {
     @IsOptional()
     @IsString({ message: 'Avatar URL phải là chuỗi kí tự' })
     avatarUrl?: string;
+}
+
+export class UserQueryDto {
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    search?: string;
+
+    @ApiPropertyOptional({ enum: UserRole })
+    @IsOptional()
+    @IsEnum(UserRole)
+    role?: UserRole;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @Transform(({ value }) => value === 'true' || value === true)
+    @IsBoolean()
+    isActive?: boolean;
+
+    @ApiPropertyOptional({ default: 1 })
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    page?: number = 1;
+
+    @ApiPropertyOptional({ default: 10 })
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    @Max(100)
+    limit?: number = 10;
+
+    @ApiPropertyOptional({ default: 'createdAt' })
+    @IsOptional()
+    @IsString()
+    sortBy?: string;
+
+    @ApiPropertyOptional({ default: 'desc' })
+    @IsOptional()
+    @IsIn(['asc', 'desc'])
+    sortOrder?: 'asc' | 'desc';
+}
+
+export class UpdateUserRoleDto {
+    @ApiPropertyOptional({ enum: UserRole })
+    @IsEnum(UserRole, { message: 'Vai trò không hợp lệ' })
+    role: UserRole;
 }

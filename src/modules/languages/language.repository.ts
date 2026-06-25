@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructures/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import { CreateLanguageDto, UpdateLanguageDto } from './language.dto';
+import { CreateLanguageDto, UpdateLanguageDto, LanguageQueryDto } from './language.dto';
 
 const languageSelect = {
     id: true,
@@ -22,8 +22,24 @@ export class LanguageRepository {
         });
     }
 
-    async findAll() {
+    async findAll(query?: LanguageQueryDto) {
+        const where: Prisma.LanguageWhereInput = {};
+
+        if (query?.search) {
+            const term = query.search;
+            where.OR = [
+                { id: { contains: term, mode: 'insensitive' } },
+                { name: { contains: term, mode: 'insensitive' } },
+                { nativeName: { contains: term, mode: 'insensitive' } },
+            ];
+        }
+
+        if (query?.isSupported !== undefined) {
+            where.isSupported = query.isSupported;
+        }
+
         return this.prisma.language.findMany({
+            where,
             orderBy: { name: 'asc' },
             select: languageSelect,
         });

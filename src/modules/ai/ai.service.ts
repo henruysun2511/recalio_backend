@@ -1,12 +1,16 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, BadRequestException } from '@nestjs/common';
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
+import { PDFParse, VerbosityLevel } from 'pdf-parse';
 import { AiProvider } from './providers/ai-provider.interface';
 import { AiError } from './ai.error';
 import { AI_PROVIDER_TOKEN, AI_CONSTANTS, AI_CLOUDINARY_FOLDER, AI_PROMPTS } from './ai.constant';
 import {
     ExtractWordsDto,
     GenerateNotesDto,
+    RelatedNotesDto,
+    RelatedNotesResponseDto,
+    ProcessDocumentNoteDto,
     AiNoteDto,
     DetectImageResponseDto,
 } from './ai.dto';
@@ -31,11 +35,48 @@ export class AiService {
         if (!this.provider.isConfigured()) throw AiError.aiNotConfigured();
 
         const count = dto.count ?? AI_CONSTANTS.DEFAULT_NOTES;
-        const prompt = `${AI_PROMPTS.FROM_TOPIC}\n\nTopic: ${dto.topic}\nLanguage: ${dto.languageId}\nCount: ${count}`;
+        const prompt = `${AI_PROMPTS.FROM_TOPIC.replace('{count}', String(count))}\n\nTopic: ${dto.topic}\nLanguage: ${dto.languageId}\nCount: ${count}`;
         const raw = await this.provider.generateText(prompt);
         if (!raw) throw AiError.generationFailed();
 
         return this.parseJson(raw).notes ?? [];
+    }
+
+    async generateRelatedNotes(dto: RelatedNotesDto): Promise<RelatedNotesResponseDto> {
+        if (!this.provider.isConfigured()) throw AiError.aiNotConfigured();
+
+        const prompt = `${AI_PROMPTS.RELATED_NOTES}\n\nWord: ${dto.word}\nLanguage: ${dto.languageId}`;
+        const raw = await this.provider.generateText(prompt);
+        if (!raw) throw AiError.generationFailed();
+
+        const parsed = this.parseJson(raw);
+        return {
+            synonyms: parsed.synonyms ?? [],
+            antonyms: parsed.antonyms ?? [],
+        };
+    }
+
+    async processDocument(file: Express.Multer.File): Promise<ProcessDocumentNoteDto[]> {
+        if (!this.provider.isConfigured()) throw AiError.aiNotConfigured();
+
+        const parser = new PDFParse({ data: file.buffer, verbosity: VerbosityLevel.ERRORS });
+        const result = await parser.getText();
+        const pageCount = result.total;
+
+        if (pageCount > AI_CONSTANTS.MAX_PDF_PAGES) {
+            throw new BadRequestException(`PDF vượt quá ${AI_CONSTANTS.MAX_PDF_PAGES} trang (hiện tại: ${pageCount})`);
+        }
+
+        const text = result.pages.map((p) => p.text).join('\n').trim();
+        if (!text) {
+            throw new BadRequestException('Không thể trích xuất văn bản từ PDF');
+        }
+
+        const prompt = `${AI_PROMPTS.PROCESS_DOCUMENT}\n\nDocument:\n${text}`;
+        const raw = await this.provider.generateText(prompt);
+        if (!raw) throw AiError.generationFailed();
+
+        return this.parseJson(raw) as ProcessDocumentNoteDto[];
     }
 
     async detectImage(file: Express.Multer.File): Promise<DetectImageResponseDto> {
@@ -44,10 +85,14 @@ export class AiService {
         const raw = await this.provider.analyzeImage(file.buffer, file.mimetype, AI_PROMPTS.DETECT_IMAGE);
         if (!raw) throw AiError.detectionFailed();
 
-        const objects = this.parseJson(raw).objects ?? [];
+        const parsed = this.parseJson(raw);
         const imageUrl = await this.uploadToCloudinary(file.buffer);
 
-        return { imageUrl, objects };
+        return {
+            imageUrl,
+            objects: parsed.objects ?? [],
+            notes: parsed.notes ?? [],
+        };
     }
 
     private parseJson(text: string): Record<string, any> {

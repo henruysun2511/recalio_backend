@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructures/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, PartOfSpeech, NoteSourceType } from '@prisma/client';
 import { UpdateNoteDto } from './note.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { SortOrder } from '../../common/enums/sort.enum';
@@ -111,6 +111,61 @@ export class NoteRepository {
             });
 
             if (cardData.length) {
+                await tx.card.createMany({ data: cardData });
+            }
+
+            return tx.note.findMany({
+                where: { id: { in: notes.map((n) => n.id) } },
+                select: { id: true, word: true, languageId: true, audioUrl: true },
+            });
+        });
+    }
+
+    async createDocumentNotes(
+        userId: string,
+        deckId: string,
+        templateId: string,
+        languageId: string,
+        items: { word: string; meaning: string; example: string; chunk: string; pageNumber?: number | null; orderIndex: number }[],
+        cardTemplateMap: Record<string, string[]>,
+    ) {
+        return this.prisma.$transaction(async (tx) => {
+            const notes = items.map((item) => ({
+                id: crypto.randomUUID(),
+                userId,
+                deckId,
+                templateId,
+                languageId,
+                word: item.word,
+                meaning: item.meaning,
+                example: item.example,
+                partOfSpeech: PartOfSpeech.PHRASE,
+                sourceType: NoteSourceType.DOCUMENT,
+                fields: {} as Prisma.InputJsonValue,
+            }));
+
+            await tx.note.createMany({ data: notes as any });
+
+            const documentNoteData = items.map((item, i) => ({
+                id: crypto.randomUUID(),
+                noteId: notes[i].id,
+                chunk: item.chunk,
+                pageNumber: item.pageNumber ?? null,
+                orderIndex: item.orderIndex,
+            }));
+
+            await tx.documentNote.createMany({ data: documentNoteData });
+
+            const ctIds = cardTemplateMap[templateId] ?? [];
+            const cardData = notes.map((n) => ({
+                id: crypto.randomUUID(),
+                userId,
+                noteId: n.id,
+                cardTemplateId: ctIds[0] ?? '',
+                deckId,
+            }));
+
+            if (cardData.length && cardData[0].cardTemplateId) {
                 await tx.card.createMany({ data: cardData });
             }
 

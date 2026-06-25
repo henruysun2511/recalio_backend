@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { NoteService } from './note.service';
-import { NoteResponseDto, UpdateNoteDto, PreviewNoteDto, ConfirmNoteDto } from './note.dto';
+import { NoteResponseDto, UpdateNoteDto, PreviewNoteDto, ConfirmNoteDto, CreateDocumentNotesDto } from './note.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator';
@@ -47,6 +47,15 @@ export class NoteController {
     @SwaggerDoc({ summary: 'Update a note', bodyType: UpdateNoteDto, responseType: NoteResponseDto })
     async update(@CurrentUser('id') userId: string, @Param('id') id: string, @Body() dto: UpdateNoteDto) {
         return this.service.update(userId, id, dto);
+    }
+
+    @Post('from-document')
+    @ApiBearerAuth()
+    @ResponseMessage('Tạo notes từ tài liệu thành công')
+    @SwaggerDoc({ summary: 'Create notes and document notes from processed document', bodyType: CreateDocumentNotesDto })
+    @HttpCode(HttpStatus.ACCEPTED)
+    async createDocumentNotes(@CurrentUser('id') userId: string, @Body() dto: CreateDocumentNotesDto) {
+        return this.service.createDocumentNotes(userId, dto);
     }
 
     @Delete(':id')

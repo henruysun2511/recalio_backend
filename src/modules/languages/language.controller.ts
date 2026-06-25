@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { LanguageService } from './language.service';
-import { CreateLanguageDto, UpdateLanguageDto, LanguageResponseDto } from './language.dto';
+import { CreateLanguageDto, UpdateLanguageDto, LanguageQueryDto, LanguageResponseDto } from './language.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -21,18 +21,20 @@ export class LanguageController {
         return this.service.findAllSupported();
     }
 
+    @Public()
     @Get()
-    @ApiBearerAuth()
-    @Roles(UserRole.ADMIN)
+    // @ApiBearerAuth()
+    // @Roles(UserRole.ADMIN)
     @ResponseMessage('Lấy danh sách ngôn ngữ thành công')
     @SwaggerDoc({ summary: 'List all languages (admin)', responseType: LanguageResponseDto, isArray: true })
-    async findAll() {
-        return this.service.findAll();
+    async findAll(@Query() query: LanguageQueryDto) {
+        return this.service.findAll(query);
     }
 
+    @Public()
     @Post()
-    @ApiBearerAuth()
-    @Roles(UserRole.ADMIN)
+    // @ApiBearerAuth()
+    // @Roles(UserRole.ADMIN)
     @ResponseMessage('Thêm ngôn ngữ thành công')
     @SwaggerDoc({ summary: 'Create language (admin)', bodyType: CreateLanguageDto, responseType: LanguageResponseDto, status: 201 })
     async create(@Body() dto: CreateLanguageDto) {

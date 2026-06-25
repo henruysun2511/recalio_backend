@@ -3,11 +3,11 @@ import 'dotenv/config';
 export const AppConfig = {
   NODE_ENV: process.env.NODE_ENV ?? 'development',
   PORT: parseInt(process.env.PORT ?? '3000', 10),
-  CLIENT_URL: process.env.CLIENT_URL ?? 'http://localhost:3000',
+  CLIENT_URL: process.env.CLIENT_URL ?? 'http://localhost:3001',
   IS_DEV: process.env.NODE_ENV === 'development',
   IS_PROD: process.env.NODE_ENV === 'production',
   CORS_ORIGINS: process.env.CORS_ORIGINS?.split(',')?.filter(Boolean) || [
-    'http://localhost:3000',
+    'http://localhost:3001',
   ],
   CORS_METHODS: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   CORS_CREDENTIALS: process.env.CORS_CREDENTIALS === 'true',
@@ -44,7 +44,7 @@ export const AppConfig = {
   // Google OAuth
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
-  GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:3000/auth/google/callback',
+  GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:3000/api/v1/auth/callback',
 
   // SMTP
   SMTP_HOST: process.env.SMTP_HOST ?? 'smtp.gmail.com',

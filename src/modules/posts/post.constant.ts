@@ -1,0 +1,7 @@
+export const POST_CONSTANTS = {
+    TITLE_MAX_LENGTH: 200,
+    CONTENT_MAX_LENGTH: 10000,
+    TAG_MAX_LENGTH: 50,
+    MAX_TAGS: 20,
+    MAX_DECKS_PER_POST: 50,
+} as const;

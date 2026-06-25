@@ -63,8 +63,11 @@ model User {
   studySessions    StudySession[]
   deckReviews      DeckReview[]
   reportedBy       DeckReport[]      @relation("ReportedBy")
+  postReports      PostReport[]      @relation("PostReportedBy")
   userFollowers    UserFollow[]      @relation("Following")
   userFollowing    UserFollow[]      @relation("Follower")
+  posts            Post[]
+  postLikes        PostLike[]
   notifications    Notification[]
   userAchievements UserAchievement[]
   dailyGoal        DailyGoal?
@@ -151,6 +154,7 @@ model Deck {
   cards      Card[]
   deckReviews DeckReview[]
   reports    DeckReport[]
+  postDecks  PostDeck[]
   studySessions StudySession[]
 
   @@index([userId])
@@ -216,7 +220,7 @@ model CardTemplate {
 }
 
 model Note {
-  id           String       @id @default(uuid())
+  id           String          @id @default(uuid())
   userId       String
   deckId       String
   templateId   String
@@ -229,21 +233,37 @@ model Note {
   audioUrl     String?
   imageUrl     String?
   tags         String[]
-  fields       Json          @default("{}") // extra fields theo template
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  fields       Json            @default("{}") // extra fields theo template
+  sourceType   NoteSourceType  @default(MANUAL)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
   deletedAt    DateTime?
 
-  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deck     Deck         @relation(fields: [deckId], references: [id], onDelete: Cascade)
-  template NoteTemplate @relation(fields: [templateId], references: [id])
-  language Language     @relation(fields: [languageId], references: [id])
-  cards    Card[]
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deck         Deck           @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  template     NoteTemplate   @relation(fields: [templateId], references: [id])
+  language     Language       @relation(fields: [languageId], references: [id])
+  cards        Card[]
+  documentNote DocumentNote?
 
   @@index([userId])
   @@index([deckId])
   @@index([tags])
   @@map("notes")
+}
+
+// ─── DOCUMENT NOTE ─────────────────────────────────────────
+
+model DocumentNote {
+  id         String  @id @default(uuid())
+  noteId     String  @unique
+  chunk      String
+  pageNumber Int?
+  orderIndex Int
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@map("document_notes")
 }
 
 model Card {
@@ -398,7 +418,79 @@ model Notification {
   @@map("notifications")
 }
 
-// ─── 8. GAMIFICATION ───────────────────────────────────────
+// ─── 8. POSTS ─────────────────────────────────────────────
+
+model Post {
+  id          String    @id @default(uuid())
+  userId      String
+  title       String
+  content     String?
+  coverImage  String?
+  tags        String[]
+  isPublished Boolean   @default(false)
+  isBanned    Boolean   @default(false)
+  likeCount   Int       @default(0)
+  publishedAt DateTime?
+  bannedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  decks   PostDeck[]
+  reports PostReport[]
+  likes   PostLike[]
+
+  @@index([userId])
+  @@index([isPublished, isBanned, publishedAt])
+  @@index([tags])
+  @@map("posts")
+}
+
+model PostDeck {
+  postId     String
+  deckId     String
+  orderIndex Int @default(0)
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  deck Deck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@id([postId, deckId])
+  @@map("post_decks")
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("post_likes")
+}
+
+model PostReport {
+  id           String       @id @default(uuid())
+  reportedById String
+  postId       String
+  reason       ReportReason
+  description  String?
+  status       ReportStatus @default(PENDING)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  reportedBy User @relation("PostReportedBy", fields: [reportedById], references: [id])
+  post       Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([postId])
+  @@map("post_reports")
+}
+
+// ─── 9. GAMIFICATION ───────────────────────────────────────
 
 model DailyGoal {
   id             String @id @default(uuid())
@@ -541,6 +633,11 @@ enum ReportStatus {
   REVIEWED
   DISMISSED
   ACTION_TAKEN
+}
+
+enum NoteSourceType {
+  MANUAL
+  DOCUMENT
 }
 
 

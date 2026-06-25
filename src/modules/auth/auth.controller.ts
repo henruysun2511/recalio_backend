@@ -24,8 +24,8 @@ export class AuthController {
         return this.service.register(dto);
     }
 
-    @Post('login')
     @Public()
+    @Post('login')
     @HttpCode(HttpStatus.OK)
     @ResponseMessage('Đăng nhập thành công')
     @SwaggerDoc({ summary: 'Login', bodyType: LoginDto })
@@ -39,7 +39,7 @@ export class AuthController {
     @SwaggerDoc({ summary: 'Redirect to Google OAuth consent screen' })
     googleAuth() { }
 
-    @Get('google/callback')
+    @Get('callback')
     @Public()
     @UseGuards(AuthGuard('google'))
     @SwaggerDoc({ summary: 'Google OAuth callback' })
@@ -54,7 +54,7 @@ export class AuthController {
         res.redirect(`${AppConfig.CLIENT_URL}/auth/callback?${query}`);
     }
 
-    @Post('refresh')
+    @Post('refresh-token')
     @Public()
     @HttpCode(HttpStatus.OK)
     @ResponseMessage('Cấp lại token thành công')

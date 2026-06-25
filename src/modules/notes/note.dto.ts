@@ -232,3 +232,63 @@ export class ConfirmNoteDto {
     @Type(() => ConfirmWordDto)
     words: ConfirmWordDto[];
 }
+
+// ─── Document Notes ──────────────────────────────────────
+
+export class DocumentNoteInputDto {
+    @ApiProperty({ example: "Newton's First Law of Motion", description: 'Title of the chunk (sẽ lưu vào word)' })
+    @IsString({ message: 'word phải là chuỗi kí tự' })
+    @IsNotEmpty({ message: 'word không được để trống' })
+    word: string;
+
+    @ApiProperty({ example: 'An object remains at rest or in uniform motion unless acted upon by an external force', description: 'Summary (sẽ lưu vào meaning)' })
+    @IsString({ message: 'meaning phải là chuỗi kí tự' })
+    meaning: string;
+
+    @ApiProperty({ example: 'A hockey puck sliding on ice continues moving until friction gradually brings it to a stop', description: 'Key sentence (sẽ lưu vào example)' })
+    @IsString({ message: 'example phải là chuỗi kí tự' })
+    example: string;
+
+    @ApiProperty({ example: 'A hockey puck sliding on ice continues moving until friction gradually brings it to a stop', description: 'Original chunk text' })
+    @IsString({ message: 'chunk phải là chuỗi kí tự' })
+    chunk: string;
+
+    @ApiPropertyOptional({ example: 1 })
+    @IsOptional()
+    @Type(() => Number)
+    pageNumber?: number;
+
+    @ApiProperty({ example: 0 })
+    @Type(() => Number)
+    orderIndex: number;
+}
+
+export class CreateDocumentNotesDto {
+    @ApiProperty({ example: 'uuid' })
+    @IsString({ message: 'deckId phải là chuỗi kí tự' })
+    @IsNotEmpty({ message: 'deckId không được để trống' })
+    deckId: string;
+
+    @ApiProperty({ example: 'en' })
+    @IsString({ message: 'languageId phải là chuỗi kí tự' })
+    @IsNotEmpty({ message: 'languageId không được để trống' })
+    languageId: string;
+
+    @ApiProperty({ example: 'uuid' })
+    @IsString({ message: 'templateId phải là chuỗi kí tự' })
+    @IsNotEmpty({ message: 'templateId không được để trống' })
+    templateId: string;
+
+    @ApiProperty({ example: 'document.pdf' })
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString({ message: 'fileName phải là chuỗi kí tự' })
+    fileName?: string;
+
+    @ApiProperty({ type: [DocumentNoteInputDto] })
+    @IsArray({ message: 'items phải là mảng' })
+    @ArrayMinSize(1, { message: 'Phải có ít nhất 1 item' })
+    @ValidateNested({ each: true })
+    @Type(() => DocumentNoteInputDto)
+    items: DocumentNoteInputDto[];
+}
