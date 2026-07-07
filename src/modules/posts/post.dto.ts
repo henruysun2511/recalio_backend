@@ -3,6 +3,7 @@ import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ReportReason } from '@prisma/client';
 import { POST_CONSTANTS } from './post.constant';
+import { SearchDto } from 'src/common/dtos/search.dto';
 
 export class CreatePostDto {
     @ApiProperty({ example: 'Cách học tiếng Nhật hiệu quả' })
@@ -76,22 +77,7 @@ export class UpdatePostDto {
     deckIds?: string[];
 }
 
-export class PostQueryDto {
-    @ApiPropertyOptional()
-    @IsOptional()
-    @Type(() => Number)
-    page?: number = 1;
-
-    @ApiPropertyOptional()
-    @IsOptional()
-    @Type(() => Number)
-    limit?: number = 10;
-
-    @ApiPropertyOptional()
-    @IsOptional()
-    @IsString()
-    search?: string;
-
+export class PostQueryDto extends SearchDto {
     @ApiPropertyOptional()
     @IsOptional()
     @IsString()

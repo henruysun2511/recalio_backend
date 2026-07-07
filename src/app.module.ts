@@ -20,7 +20,10 @@ import { NotificationModule } from './modules/notifications/notification.module'
 import { GamificationModule } from './modules/gamification/gamification.module';
 import { AiModule } from './modules/ai/ai.module';
 import { PostModule } from './modules/posts/post.module';
+import { PostCommentModule } from './modules/post-comments/post-comment.module';
+import { SuggestionModule } from './modules/suggestions/suggestion.module';
 import { defaultQueueOptions } from './config/queue.config';
+import { CloudinaryModule } from './infrastructures/cloudinary/cloudinary.module';
 
 @Module({
     imports: [
@@ -43,6 +46,9 @@ import { defaultQueueOptions } from './config/queue.config';
         GamificationModule,
         AiModule,
         PostModule,
+        PostCommentModule,
+        SuggestionModule,
+        CloudinaryModule,
     ],
     controllers: [AppController],
     providers: [AppService],

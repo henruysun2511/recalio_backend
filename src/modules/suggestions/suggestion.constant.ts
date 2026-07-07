@@ -1,0 +1,4 @@
+export const SUGGESTION_CONSTANTS = {
+    CONTENT_MAX_LENGTH: 2000,
+    EMAIL_MAX_LENGTH: 255,
+} as const;
