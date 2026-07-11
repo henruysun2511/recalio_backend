@@ -277,7 +277,6 @@ model Card {
   deckId         String       
 
   state          CardState    @default(NEW)
-  flags          Int          @default(0) // bitmask: 1=red 2=orange 4=green 8=blue
 
   // SM-2
   due            DateTime     @default(now())
@@ -338,7 +337,6 @@ model StudySession {
   id        String    @id @default(uuid())
   userId    String
   deckId    String?
-  mode      StudyMode @default(NORMAL)
   startedAt DateTime  @default(now())
   endedAt   DateTime?
 
@@ -445,7 +443,6 @@ model Post {
   userId      String
   title       String
   content     String?
-  coverImage  String?
   tags        String[]
   isPublished Boolean   @default(false)
   isBanned    Boolean   @default(false)
@@ -620,12 +617,6 @@ enum ReviewRating {
   EASY
 }
 
-enum StudyMode {
-  NORMAL
-  CRAM
-  PREVIEW
-}
-
 enum NotificationType {
   STUDY_REMINDER
   CARDS_DUE
@@ -636,7 +627,6 @@ enum NotificationType {
   SYSTEM
 }
 
-// EMAIL: d� d�ng. WEB_PUSH, MOBILE_PUSH: t?m ?n, chua tri?n khai
 enum NotificationChannel {
   EMAIL
   WEB_PUSH

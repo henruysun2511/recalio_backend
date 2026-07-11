@@ -10,15 +10,15 @@ import { QueueModule } from '../../infrastructures/queue/queue.module';
 import { NoteProcessor } from './note.processor';
 
 @Module({
-    imports: [
-        DeckModule,
-        NoteTemplateModule,
-        AudioModule,
-        LanguageModule,
-        QueueModule,
-    ],
-    controllers: [NoteController],
-    providers: [NoteService, NoteRepository, NoteProcessor],
-    exports: [NoteService],
+  imports: [
+    DeckModule,
+    NoteTemplateModule,
+    AudioModule,
+    LanguageModule,
+    QueueModule,
+  ],
+  controllers: [NoteController],
+  providers: [NoteService, NoteRepository, NoteProcessor],
+  exports: [NoteService],
 })
-export class NoteModule { }
+export class NoteModule {}

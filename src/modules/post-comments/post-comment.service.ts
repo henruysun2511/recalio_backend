@@ -1,48 +1,64 @@
 import { Injectable } from '@nestjs/common';
 import { PostCommentRepository } from './post-comment.repository';
-import { CreateCommentDto, UpdateCommentDto, CommentQueryDto } from './post-comment.dto';
+import {
+  CreateCommentDto,
+  UpdateCommentDto,
+  CommentQueryDto,
+} from './post-comment.dto';
 import { PostCommentError } from './post-comment.error';
+import { paginate } from '../../common/utils/paginate.util';
 
 @Injectable()
 export class PostCommentService {
-    constructor(private readonly repo: PostCommentRepository) { }
+  constructor(private readonly repo: PostCommentRepository) {}
 
-    async create(userId: string, postId: string, dto: CreateCommentDto) {
-        if (dto.parentId) {
-            const parent = await this.repo.findById(dto.parentId);
-            if (!parent) throw PostCommentError.notFound();
-            if (parent.parentId) throw PostCommentError.cannotReplyToReply();
-        }
-        return this.repo.create({ postId, userId, content: dto.content, parentId: dto.parentId });
+  async create(userId: string, postId: string, dto: CreateCommentDto) {
+    if (dto.parentId) {
+      const parent = await this.repo.findById(dto.parentId);
+      if (!parent) throw PostCommentError.notFound();
+      if (parent.parentId) throw PostCommentError.cannotReplyToReply();
     }
+    return this.repo.create({
+      postId,
+      userId,
+      content: dto.content,
+      parentId: dto.parentId,
+    });
+  }
 
-    async findByPost(postId: string, dto: CommentQueryDto) {
-        return this.repo.findByPost(postId, dto);
-    }
+  async findByPost(postId: string, dto: CommentQueryDto) {
+    const { comments, total } = await this.repo.findByPost(postId, dto);
+    return paginate(comments, total, dto);
+  }
 
-    async update(userId: string, commentId: string, dto: UpdateCommentDto) {
-        const comment = await this.repo.findById(commentId);
-        if (!comment || comment.deletedAt) throw PostCommentError.notFound();
-        if (comment.userId !== userId) throw PostCommentError.notOwner();
-        return this.repo.update(commentId, dto.content);
-    }
+  async findReplies(commentId: string, dto: CommentQueryDto) {
+    const { replies, total } = await this.repo.findReplies(commentId, dto);
+    return paginate(replies, total, dto);
+  }
 
-    async delete(userId: string, commentId: string) {
-        const comment = await this.repo.findById(commentId);
-        if (!comment || comment.deletedAt) throw PostCommentError.notFound();
-        if (comment.userId !== userId) throw PostCommentError.notOwner();
-        return this.repo.softDelete(commentId);
-    }
+  async update(userId: string, commentId: string, dto: UpdateCommentDto) {
+    const comment = await this.repo.findById(commentId);
+    if (!comment || comment.deletedAt) throw PostCommentError.notFound();
+    if (comment.userId !== userId) throw PostCommentError.notOwner();
+    return this.repo.update(commentId, dto.content);
+  }
 
-    async toggleLike(userId: string, commentId: string) {
-        const comment = await this.repo.findById(commentId);
-        if (!comment || comment.deletedAt) throw PostCommentError.notFound();
-        const existing = await this.repo.findLike(userId, commentId);
-        if (existing) {
-            await this.repo.removeLike(userId, commentId);
-            return { liked: false };
-        }
-        await this.repo.addLike(userId, commentId);
-        return { liked: true };
+  async delete(userId: string, commentId: string) {
+    const comment = await this.repo.findById(commentId);
+    if (!comment || comment.deletedAt) throw PostCommentError.notFound();
+    if (comment.userId !== userId) throw PostCommentError.notOwner();
+    return this.repo.softDelete(commentId);
+  }
+
+  async toggleLike(userId: string, commentId: string) {
+    const comment = await this.repo.findById(commentId);
+    if (!comment || comment.deletedAt) throw PostCommentError.notFound();
+    const existing = await this.repo.findLike(userId, commentId);
+    if (existing) {
+      await this.repo.removeLike(userId, commentId);
+      return { liked: false };
     }
+    await this.repo.addLike(userId, commentId);
+    return { liked: true };
+  }
 }

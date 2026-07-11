@@ -6,9 +6,9 @@ import { DeckModule } from '../decks/deck.module';
 import { GamificationModule } from '../gamification/gamification.module';
 
 @Module({
-    imports: [DeckModule, GamificationModule],
-    controllers: [CardController],
-    providers: [CardService, CardRepository],
-    exports: [CardService],
+  imports: [DeckModule, GamificationModule],
+  controllers: [CardController],
+  providers: [CardService, CardRepository],
+  exports: [CardService],
 })
-export class CardModule { }
+export class CardModule {}

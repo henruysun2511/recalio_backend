@@ -4,8 +4,8 @@ import { LanguageService } from './language.service';
 import { LanguageRepository } from './language.repository';
 
 @Module({
-    controllers: [LanguageController],
-    providers: [LanguageService, LanguageRepository],
-    exports: [LanguageService],
+  controllers: [LanguageController],
+  providers: [LanguageService, LanguageRepository],
+  exports: [LanguageService],
 })
-export class LanguageModule { }
+export class LanguageModule {}

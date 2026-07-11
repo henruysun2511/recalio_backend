@@ -1,8 +1,13 @@
-import { IsOptional, IsString, MinLength, MaxLength, IsEnum } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  MinLength,
+  MaxLength,
+  IsEnum,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PaginationDto } from './pagination.dto';
 import { SortOrder } from '../enums/sort.enum';
-
 
 export class SearchDto extends PaginationDto {
   @IsOptional()

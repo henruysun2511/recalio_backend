@@ -4,8 +4,8 @@ import { NoteTemplateService } from './note-template.service';
 import { NoteTemplateRepository } from './note-template.repository';
 
 @Module({
-    controllers: [NoteTemplateController],
-    providers: [NoteTemplateService, NoteTemplateRepository],
-    exports: [NoteTemplateService],
+  controllers: [NoteTemplateController],
+  providers: [NoteTemplateService, NoteTemplateRepository],
+  exports: [NoteTemplateService],
 })
-export class NoteTemplateModule { }
+export class NoteTemplateModule {}

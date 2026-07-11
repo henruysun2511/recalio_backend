@@ -8,9 +8,14 @@ import { NotificationCron } from './notification.cron';
 import { NotificationProcessor } from './notification.processor';
 
 @Module({
-    imports: [MailerModule, QueueModule],
-    controllers: [NotificationController],
-    providers: [NotificationService, NotificationRepository, NotificationCron, NotificationProcessor],
-    exports: [NotificationService],
+  imports: [MailerModule, QueueModule],
+  controllers: [NotificationController],
+  providers: [
+    NotificationService,
+    NotificationRepository,
+    NotificationCron,
+    NotificationProcessor,
+  ],
+  exports: [NotificationService],
 })
-export class NotificationModule { }
+export class NotificationModule {}

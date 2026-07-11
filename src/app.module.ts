@@ -19,38 +19,42 @@ import { StudySessionModule } from './modules/study-sessions/study-session.modul
 import { NotificationModule } from './modules/notifications/notification.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
 import { AiModule } from './modules/ai/ai.module';
+import { AchievementModule } from './modules/achievement/achievement.module';
 import { PostModule } from './modules/posts/post.module';
 import { PostCommentModule } from './modules/post-comments/post-comment.module';
 import { SuggestionModule } from './modules/suggestions/suggestion.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { defaultQueueOptions } from './config/queue.config';
 import { CloudinaryModule } from './infrastructures/cloudinary/cloudinary.module';
 
 @Module({
-    imports: [
-        SharedModule,
-        ScheduleModule.forRoot(),
-        BullModule.forRoot(defaultQueueOptions),
-        AuthModule,
-        UserModule,
-        DeckModule,
-        FollowModule,
-        ReportModule,
-        ReviewModule,
-        LanguageModule,
-        NoteTemplateModule,
-        DeckSettingModule,
-        NoteModule,
-        CardModule,
-        StudySessionModule,
-        NotificationModule,
-        GamificationModule,
-        AiModule,
-        PostModule,
-        PostCommentModule,
-        SuggestionModule,
-        CloudinaryModule,
-    ],
-    controllers: [AppController],
-    providers: [AppService],
+  imports: [
+    SharedModule,
+    ScheduleModule.forRoot(),
+    BullModule.forRoot(defaultQueueOptions),
+    AuthModule,
+    UserModule,
+    DeckModule,
+    FollowModule,
+    ReportModule,
+    ReviewModule,
+    LanguageModule,
+    NoteTemplateModule,
+    DeckSettingModule,
+    NoteModule,
+    CardModule,
+    StudySessionModule,
+    NotificationModule,
+    GamificationModule,
+    AiModule,
+    AchievementModule,
+    PostModule,
+    PostCommentModule,
+    SuggestionModule,
+    AdminModule,
+    CloudinaryModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

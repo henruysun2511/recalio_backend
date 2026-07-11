@@ -13,7 +13,7 @@ export function FileUploadInterceptor(options: FileUploadOptions = {}) {
     fieldName = 'file',
     maxSizeKB = 200,
     allowedMimeTypes,
-    errorMessage = 'File không hợp lệ!'
+    errorMessage = 'File không hợp lệ!',
   } = options;
 
   if (!allowedMimeTypes) {
@@ -23,7 +23,7 @@ export function FileUploadInterceptor(options: FileUploadOptions = {}) {
   return UseInterceptors(
     FileInterceptor(fieldName, {
       limits: {
-        fileSize: maxSizeKB * 1024
+        fileSize: maxSizeKB * 1024,
       },
       fileFilter: (req, file, cb) => {
         const isAllowed = allowedMimeTypes.includes(file.mimetype);
@@ -32,7 +32,7 @@ export function FileUploadInterceptor(options: FileUploadOptions = {}) {
           return cb(new BadRequestException(errorMessage), false);
         }
         cb(null, true);
-      }
-    })
+      },
+    }),
   );
 }

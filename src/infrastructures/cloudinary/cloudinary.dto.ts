@@ -18,7 +18,7 @@ export class DeleteMediaDto {
   @IsNotEmpty()
   @Transform(({ value }) => value?.toLowerCase?.())
   @IsIn(CLOUDINARY_CONSTANTS.ALLOWED_RESOURCE_TYPES, {
-    message: `resourceType must be one of: ${CLOUDINARY_CONSTANTS.ALLOWED_RESOURCE_TYPES.join(', ')}`
+    message: `resourceType must be one of: ${CLOUDINARY_CONSTANTS.ALLOWED_RESOURCE_TYPES.join(', ')}`,
   })
   resourceType: (typeof CLOUDINARY_CONSTANTS.ALLOWED_RESOURCE_TYPES)[number];
 }

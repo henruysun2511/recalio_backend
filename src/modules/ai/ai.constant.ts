@@ -1,7 +1,7 @@
 export const AI_PROVIDER_TOKEN = 'AI_PROVIDER';
 
 export const AI_CONSTANTS = {
-  MAX_NOTES: 20,
+  MAX_NOTES: 25,
   DEFAULT_NOTES: 10,
   MAX_PDF_PAGES: 2,
 } as const;

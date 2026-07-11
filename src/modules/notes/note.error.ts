@@ -1,24 +1,30 @@
-import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { NOTE_CONSTANTS } from './note.constant';
 
 export class NoteError {
-    static notFound() {
-        return new NotFoundException('Note không tồn tại');
-    }
+  static notFound() {
+    return new NotFoundException('Note không tồn tại');
+  }
 
-    static deckNotFound() {
-        return new NotFoundException('Deck không tồn tại');
-    }
+  static deckNotFound() {
+    return new NotFoundException('Deck không tồn tại');
+  }
 
-    static notOwner() {
-        return new ForbiddenException('Bạn không có quyền thao tác với note này');
-    }
+  static notOwner() {
+    return new ForbiddenException('Bạn không có quyền thao tác với note này');
+  }
 
-    static deckNotAccessible() {
-        return new NotFoundException('Deck không tồn tại hoặc không thể truy cập');
-    }
+  static deckNotAccessible() {
+    return new NotFoundException('Deck không tồn tại hoặc không thể truy cập');
+  }
 
-    static limitExceeded() {
-        return new BadRequestException(`Deck đã đạt giới hạn ${NOTE_CONSTANTS.NOTES_PER_DECK_MAX} notes`);
-    }
+  static limitExceeded() {
+    return new BadRequestException(
+      `Deck đã đạt giới hạn ${NOTE_CONSTANTS.NOTES_PER_DECK_MAX} notes`,
+    );
+  }
 }

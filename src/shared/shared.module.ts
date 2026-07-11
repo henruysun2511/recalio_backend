@@ -27,4 +27,4 @@ import { PrismaModule } from '../infrastructures/prisma/prisma.module';
   ],
   exports: [LoggerModule, PrismaModule, JwtModule],
 })
-export class SharedModule { }
+export class SharedModule {}

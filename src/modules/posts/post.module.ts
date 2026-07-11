@@ -4,8 +4,8 @@ import { PostService } from './post.service';
 import { PostRepository } from './post.repository';
 
 @Module({
-    controllers: [PostController],
-    providers: [PostService, PostRepository],
-    exports: [PostService],
+  controllers: [PostController],
+  providers: [PostService, PostRepository],
+  exports: [PostService],
 })
-export class PostModule { }
+export class PostModule {}

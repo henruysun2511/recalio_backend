@@ -5,9 +5,9 @@ import { FollowRepository } from './follow.repository';
 import { UserModule } from '../users/user.module';
 
 @Module({
-    imports: [UserModule],
-    controllers: [FollowController],
-    providers: [FollowService, FollowRepository],
-    exports: [FollowService, FollowRepository],
+  imports: [UserModule],
+  controllers: [FollowController],
+  providers: [FollowService, FollowRepository],
+  exports: [FollowService, FollowRepository],
 })
-export class FollowModule { }
+export class FollowModule {}

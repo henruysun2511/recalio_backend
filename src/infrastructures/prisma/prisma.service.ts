@@ -6,7 +6,8 @@ import { CustomLogger } from '../logger/logger.service';
 @Injectable()
 export class PrismaService
   extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy {
+  implements OnModuleInit, OnModuleDestroy
+{
   constructor(private readonly logger: CustomLogger) {
     const adapter = new PrismaPg({
       connectionString: process.env.DATABASE_URL ?? '',

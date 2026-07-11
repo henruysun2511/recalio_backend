@@ -5,9 +5,9 @@ import { StudySessionRepository } from './study-session.repository';
 import { DeckModule } from '../decks/deck.module';
 
 @Module({
-    imports: [DeckModule],
-    controllers: [StudySessionController],
-    providers: [StudySessionService, StudySessionRepository],
-    exports: [StudySessionService],
+  imports: [DeckModule],
+  controllers: [StudySessionController],
+  providers: [StudySessionService, StudySessionRepository],
+  exports: [StudySessionService],
 })
-export class StudySessionModule { }
+export class StudySessionModule {}

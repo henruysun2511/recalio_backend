@@ -5,13 +5,13 @@ import { NoteAudioProducer } from './producers/note-audio.producer';
 import { NotificationProducer } from './producers/notification.producer';
 
 @Module({
-    imports: [
-        BullModule.registerQueue(
-            { name: QueueName.ADD_NOTE },
-            { name: QueueName.NOTIFICATION },
-        ),
-    ],
-    providers: [NoteAudioProducer, NotificationProducer],
-    exports: [NoteAudioProducer, NotificationProducer],
+  imports: [
+    BullModule.registerQueue(
+      { name: QueueName.ADD_NOTE },
+      { name: QueueName.NOTIFICATION },
+    ),
+  ],
+  providers: [NoteAudioProducer, NotificationProducer],
+  exports: [NoteAudioProducer, NotificationProducer],
 })
-export class QueueModule { }
+export class QueueModule {}

@@ -6,13 +6,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
-    controllers: [AuthController],
-    providers: [
-        AuthService,
-        AuthRepository,
-        JwtStrategy,
-        GoogleStrategy,
-    ],
-    exports: [AuthService, AuthRepository],
+  controllers: [AuthController],
+  providers: [AuthService, AuthRepository, JwtStrategy, GoogleStrategy],
+  exports: [AuthService, AuthRepository],
 })
-export class AuthModule { }
+export class AuthModule {}

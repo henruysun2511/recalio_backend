@@ -5,9 +5,9 @@ import { DeckSettingRepository } from './deck-setting.repository';
 import { DeckModule } from '../decks/deck.module';
 
 @Module({
-    imports: [DeckModule],
-    controllers: [DeckSettingController],
-    providers: [DeckSettingService, DeckSettingRepository],
-    exports: [DeckSettingService],
+  imports: [DeckModule],
+  controllers: [DeckSettingController],
+  providers: [DeckSettingService, DeckSettingRepository],
+  exports: [DeckSettingService],
 })
-export class DeckSettingModule { }
+export class DeckSettingModule {}

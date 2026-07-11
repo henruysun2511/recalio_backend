@@ -5,7 +5,10 @@ import { timeout } from 'rxjs/operators';
 
 export function TimeoutInterceptor(ms: number) {
   return UseInterceptors({
-    intercept: (context: ExecutionContext, next: CallHandler): Observable<any> => {
+    intercept: (
+      context: ExecutionContext,
+      next: CallHandler,
+    ): Observable<any> => {
       return next.handle().pipe(
         timeout({
           each: ms,

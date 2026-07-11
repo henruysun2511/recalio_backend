@@ -34,7 +34,8 @@ export const AppConfig = {
   OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? '',
 
   // Cloudinary
-  CLOUDINARY_AUDIO_FOLDER: process.env.CLOUDINARY_AUDIO_FOLDER ?? 'recalio/audio',
+  CLOUDINARY_AUDIO_FOLDER:
+    process.env.CLOUDINARY_AUDIO_FOLDER ?? 'recalio/audio',
 
   // Redis
   REDIS_HOST: process.env.REDIS_HOST ?? 'localhost',
@@ -44,7 +45,9 @@ export const AppConfig = {
   // Google OAuth
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
-  GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:3000/api/v1/auth/callback',
+  GOOGLE_CALLBACK_URL:
+    process.env.GOOGLE_CALLBACK_URL ??
+    'http://localhost:3000/api/v1/auth/callback',
 
   // SMTP
   SMTP_HOST: process.env.SMTP_HOST ?? 'smtp.gmail.com',

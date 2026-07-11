@@ -14,16 +14,18 @@ export function SwaggerDoc(options: SwaggerDocOptions): MethodDecorator {
   return applyDecorators(
     ApiOperation({
       summary: options.summary,
-      description: options.description
+      description: options.description,
     }),
-    ...(options.bodyType ? [ApiBody({ type: options.bodyType, isArray: options.isArray })] : []),
+    ...(options.bodyType
+      ? [ApiBody({ type: options.bodyType, isArray: options.isArray })]
+      : []),
     ...(options.responseType
       ? [
           ApiResponse({
             status: options.status ?? 200,
-            type: options.responseType
-          })
+            type: options.responseType,
+          }),
         ]
-      : [])
+      : []),
   );
 }

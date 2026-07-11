@@ -10,7 +10,9 @@ export class AuthError {
   }
 
   static usernameTaken(username: string) {
-    return new ConflictException(`Tên người dùng "${username}" đã được sử dụng`);
+    return new ConflictException(
+      `Tên người dùng "${username}" đã được sử dụng`,
+    );
   }
 
   static emailTaken(email: string) {
@@ -22,7 +24,9 @@ export class AuthError {
   }
 
   static invalidRefreshToken() {
-    return new UnauthorizedException('Refresh token không hợp lệ hoặc đã hết hạn');
+    return new UnauthorizedException(
+      'Refresh token không hợp lệ hoặc đã hết hạn',
+    );
   }
 
   static userDeleted() {
@@ -34,6 +38,14 @@ export class AuthError {
   }
 
   static googleLoginOnly() {
-    return new UnauthorizedException('Tài khoản này dùng Google đăng nhập, vui lòng đăng nhập bằng Google');
+    return new UnauthorizedException(
+      'Tài khoản này dùng Google đăng nhập, vui lòng đăng nhập bằng Google',
+    );
+  }
+
+  static samePassword() {
+    return new UnauthorizedException(
+      'Mật khẩu mới không được trùng với mật khẩu hiện tại',
+    );
   }
 }

@@ -5,9 +5,9 @@ import { GamificationRepository } from './gamification.repository';
 import { NotificationModule } from '../notifications/notification.module';
 
 @Module({
-    imports: [NotificationModule],
-    controllers: [GamificationController],
-    providers: [GamificationService, GamificationRepository],
-    exports: [GamificationService],
+  imports: [NotificationModule],
+  controllers: [GamificationController],
+  providers: [GamificationService, GamificationRepository],
+  exports: [GamificationService],
 })
-export class GamificationModule { }
+export class GamificationModule {}

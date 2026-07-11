@@ -6,14 +6,21 @@ import { CloudinaryError } from './cloudinary.error';
 import { CLOUDINARY_CONSTANTS } from './cloudinary.constant';
 import { IUploadMediaInput, DeleteMediaDto } from './cloudinary.dto';
 
-type NormalizedUploadResponse = UploadApiResponse & { duration?: number; durationMs?: number };
+type NormalizedUploadResponse = UploadApiResponse & {
+  duration?: number;
+  durationMs?: number;
+};
 
 @Injectable()
 export class CloudinaryService {
-  async uploadMedia(file: IUploadMediaInput): Promise<NormalizedUploadResponse> {
+  async uploadMedia(
+    file: IUploadMediaInput,
+  ): Promise<NormalizedUploadResponse> {
     const isAudio = file.mimetype.startsWith('audio/');
     const resourceType = isAudio ? 'video' : 'image';
-    const folder = isAudio ? CLOUDINARY_CONSTANTS.FOLDERS.AUDIO : CLOUDINARY_CONSTANTS.FOLDERS.IMAGE;
+    const folder = isAudio
+      ? CLOUDINARY_CONSTANTS.FOLDERS.AUDIO
+      : CLOUDINARY_CONSTANTS.FOLDERS.IMAGE;
 
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
@@ -21,12 +28,20 @@ export class CloudinaryService {
           folder,
           resource_type: resourceType,
         },
-        (error: UploadApiErrorResponse | undefined, result: UploadApiResponse | undefined) => {
+        (
+          error: UploadApiErrorResponse | undefined,
+          result: UploadApiResponse | undefined,
+        ) => {
           if (error) return reject(CloudinaryError.uploadFailed(error.message));
-          if (!result) return reject(CloudinaryError.uploadFailed('Empty upload response'));
+          if (!result)
+            return reject(
+              CloudinaryError.uploadFailed('Empty upload response'),
+            );
 
           const resAny = result as any;
-          const normalized: NormalizedUploadResponse = { ...(result as UploadApiResponse) } as NormalizedUploadResponse;
+          const normalized: NormalizedUploadResponse = {
+            ...result,
+          };
           if (typeof resAny.duration === 'number') {
             normalized.duration = resAny.duration;
             normalized.durationMs = Math.round(resAny.duration * 1000);
@@ -40,7 +55,9 @@ export class CloudinaryService {
 
   async deleteMedia(mediaDto: DeleteMediaDto) {
     try {
-      const result = await cloudinary.uploader.destroy(mediaDto.publicId, { resource_type: mediaDto.resourceType });
+      const result = await cloudinary.uploader.destroy(mediaDto.publicId, {
+        resource_type: mediaDto.resourceType,
+      });
 
       if (result.result === 'not_found') {
         throw CloudinaryError.fileNotFound();
@@ -54,6 +71,4 @@ export class CloudinaryService {
       throw error;
     }
   }
-
-
 }

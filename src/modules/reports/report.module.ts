@@ -6,9 +6,9 @@ import { DeckModule } from '../decks/deck.module';
 import { NotificationModule } from '../notifications/notification.module';
 
 @Module({
-    imports: [DeckModule, NotificationModule],
-    controllers: [ReportController],
-    providers: [ReportService, ReportRepository],
-    exports: [ReportService, ReportRepository],
+  imports: [DeckModule, NotificationModule],
+  controllers: [ReportController],
+  providers: [ReportService, ReportRepository],
+  exports: [ReportService, ReportRepository],
 })
-export class ReportModule { }
+export class ReportModule {}
