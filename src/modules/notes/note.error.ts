@@ -27,4 +27,12 @@ export class NoteError {
       `Deck đã đạt giới hạn ${NOTE_CONSTANTS.NOTES_PER_DECK_MAX} notes`,
     );
   }
+
+  static invalidClozeSyntax() {
+    return new BadRequestException('Nội dung Cloze phải chứa ít nhất 1 vùng ẩn dạng {{c1::...}}');
+  }
+
+  static invalidOcclusionMasks() {
+    return new BadRequestException('Image Occlusion cần ít nhất 1 vùng che');
+  }
 }

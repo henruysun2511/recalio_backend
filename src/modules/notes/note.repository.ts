@@ -18,6 +18,10 @@ const noteSelect = {
   imageUrl: true,
   tags: true,
   fields: true,
+  template: { select: { type: true } },
+  occlusionMasks: {
+    select: { x: true, y: true, width: true, height: true, groupIndex: true, label: true },
+  },
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.NoteSelect;
@@ -39,6 +43,10 @@ export class NoteRepository {
         { meaning: { contains: dto.search, mode: 'insensitive' } },
         { example: { contains: dto.search, mode: 'insensitive' } },
       ];
+    }
+
+    if (dto.templateId) {
+      where.templateId = dto.templateId;
     }
 
     const [items, total] = await Promise.all([
@@ -96,6 +104,8 @@ export class NoteRepository {
       imageUrl?: string;
       tags?: string[];
       fields?: Record<string, unknown>;
+      variantIndices?: number[] | null;
+      masks?: { x: number; y: number; width: number; height: number; groupIndex: number; label?: string }[];
     }[],
     cardTemplateMap: Record<string, string[]>,
   ) {
@@ -119,19 +129,49 @@ export class NoteRepository {
 
       await tx.note.createMany({ data: notes as any });
 
-      const cardData = notes.flatMap((n) => {
+      const cardData: any[] = [];
+      const maskData: any[] = [];
+
+      notes.forEach((n, i) => {
+        const item = items[i];
         const ctIds = cardTemplateMap[n.templateId] ?? [];
-        return ctIds.map((ctId) => ({
-          id: crypto.randomUUID(),
-          userId,
-          noteId: n.id,
-          cardTemplateId: ctId,
-          deckId,
-        }));
+
+        if (item.variantIndices === null || item.variantIndices === undefined) {
+          // BASIC / BASIC_REVERSED — giữ nguyên logic cũ
+          ctIds.forEach((ctId) => {
+            cardData.push({
+              id: crypto.randomUUID(), userId, noteId: n.id,
+              cardTemplateId: ctId, deckId, variantIndex: null,
+            });
+          });
+        } else {
+          // CLOZE / IMAGE_OCCLUSION — 1 Card cho mỗi variant index
+          const ctId = ctIds[0];
+          item.variantIndices.forEach((idx: number) => {
+            cardData.push({
+              id: crypto.randomUUID(), userId, noteId: n.id,
+              cardTemplateId: ctId, deckId, variantIndex: idx,
+            });
+          });
+
+          if (item.masks?.length) {
+            item.masks.forEach((m) => {
+              maskData.push({
+                id: crypto.randomUUID(), noteId: n.id,
+                x: m.x, y: m.y, width: m.width, height: m.height,
+                groupIndex: m.groupIndex, label: m.label ?? null,
+              });
+            });
+          }
+        }
       });
 
       if (cardData.length) {
         await tx.card.createMany({ data: cardData });
+      }
+
+      if (maskData.length) {
+        await tx.occlusionMask.createMany({ data: maskData });
       }
 
       return tx.note.findMany({

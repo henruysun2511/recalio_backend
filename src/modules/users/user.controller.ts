@@ -52,6 +52,13 @@ export class UserController {
     await this.service.deleteAccount(userId);
   }
 
+  @Get('me/languages')
+  @ResponseMessage('Lấy danh sách ngôn ngữ thành công')
+  @SwaggerDoc({ summary: 'Get current user languages' })
+  async getLanguages(@CurrentUser('id') userId: string) {
+    return this.service.getLanguages(userId);
+  }
+
   @Get(':username')
   @Public()
   @ResponseMessage('Lấy thông tin người dùng thành công')

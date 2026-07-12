@@ -18,6 +18,7 @@ import {
   BanPostDto,
 } from './post.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator';
 import { SwaggerDoc } from '../../common/swagger/swagger-doc';
@@ -36,6 +37,7 @@ export class PostController {
   }
 
   @Get()
+  @Public()
   @SwaggerDoc({ summary: 'List published posts' })
   async findAll(@CurrentUser('id') userId: string, @Query() dto: PostQueryDto) {
     return this.service.findAll(userId, dto);

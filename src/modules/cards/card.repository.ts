@@ -9,6 +9,7 @@ const cardWithNoteSelect = {
   noteId: true,
   deckId: true,
   cardTemplateId: true,
+  variantIndex: true,
   state: true,
   due: true,
   note: {
@@ -22,6 +23,10 @@ const cardWithNoteSelect = {
       imageUrl: true,
       fields: true,
       templateId: true,
+      template: { select: { type: true } },
+      occlusionMasks: {
+        select: { x: true, y: true, width: true, height: true, groupIndex: true, label: true },
+      },
     },
   },
   cardTemplate: {

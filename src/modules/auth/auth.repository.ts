@@ -72,4 +72,32 @@ export class AuthRepository {
       data: { passwordHash },
     });
   }
+
+  async createOtp(data: {
+    userId: string;
+    email: string;
+    otpCode: string;
+    expiresAt: Date;
+  }) {
+    return this.prisma.passwordResetToken.create({ data });
+  }
+
+  async findValidOtp(email: string, otpCode: string) {
+    return this.prisma.passwordResetToken.findFirst({
+      where: {
+        email,
+        otpCode,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async markOtpUsed(id: string) {
+    return this.prisma.passwordResetToken.update({
+      where: { id },
+      data: { usedAt: new Date() },
+    });
+  }
 }

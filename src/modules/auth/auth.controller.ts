@@ -17,6 +17,9 @@ import {
   LoginDto,
   RefreshTokenDto,
   ChangePasswordDto,
+  ForgotPasswordDto,
+  VerifyOtpDto,
+  ResetPasswordDto,
 } from './auth.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -94,6 +97,33 @@ export class AuthController {
   @SwaggerDoc({ summary: 'Logout (revoke refresh token)' })
   async logout(@Body() dto: RefreshTokenDto) {
     await this.service.logout(dto.refreshToken);
+  }
+
+  @Post('forgot-password')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Mã OTP đã được gửi đến email của bạn')
+  @SwaggerDoc({ summary: 'Send OTP to email for password reset', bodyType: ForgotPasswordDto })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.service.forgotPassword(dto);
+  }
+
+  @Post('verify-otp')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Mã OTP hợp lệ')
+  @SwaggerDoc({ summary: 'Verify OTP code', bodyType: VerifyOtpDto })
+  async verifyOtp(@Body() dto: VerifyOtpDto) {
+    return this.service.verifyOtp(dto);
+  }
+
+  @Post('reset-password')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Mật khẩu đã được đặt lại thành công')
+  @SwaggerDoc({ summary: 'Reset password with OTP', bodyType: ResetPasswordDto })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.service.resetPassword(dto);
   }
 
   @Post('change-password')

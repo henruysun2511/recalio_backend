@@ -11,6 +11,8 @@ import {
 } from './card.dto';
 import { CardState, ReviewRating } from '@prisma/client';
 import { CARD_CONSTANTS } from './card.constant';
+
+const CLOZE_MARKER_REGEX = /\{\{c(\d+)::(.*?)\}\}/g;
 import { paginate } from '../../common/utils/paginate.util';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 
@@ -380,6 +382,62 @@ export class CardService {
 
   private toResponse(card: any): CardResponseDto {
     const note = card.note;
+    const noteType = note.template?.type;
+
+    if (noteType === 'CLOZE') return this.toClozeResponse(card, note);
+    if (noteType === 'IMAGE_OCCLUSION') return this.toOcclusionResponse(card, note);
+    return this.toBasicResponse(card, note);
+  }
+
+  private toClozeResponse(card: any, note: any): CardResponseDto {
+    const text = (note.fields?.Text as string) ?? '';
+    const extra = (note.fields?.Extra as string) ?? '';
+    const revealIndex = card.variantIndex;
+
+    const renderSide = (side: 'front' | 'back') =>
+      text.replace(new RegExp(CLOZE_MARKER_REGEX), (_m: string, idxStr: string, content: string) => {
+        const idx = Number(idxStr);
+        if (idx !== revealIndex) return content;
+        return side === 'back'
+          ? `<b class="cloze-reveal">${content}</b>`
+          : `<span class="cloze">[...]</span>`;
+      });
+
+    const template = card.cardTemplate;
+    return {
+      id: card.id,
+      noteId: card.noteId,
+      deckId: card.deckId,
+      cardTemplateId: card.cardTemplateId,
+      state: card.state,
+      due: card.due,
+      variantIndex: card.variantIndex,
+      frontHtml: renderSide('front'),
+      backHtml: extra ? `${renderSide('back')}<hr class="my-3"/>${extra}` : renderSide('back'),
+      css: template.css,
+      note: { word: note.word, meaning: note.meaning, imageUrl: note.imageUrl, audioUrl: note.audioUrl },
+    };
+  }
+
+  private toOcclusionResponse(card: any, note: any): CardResponseDto {
+    const template = card.cardTemplate;
+    return {
+      id: card.id,
+      noteId: card.noteId,
+      deckId: card.deckId,
+      cardTemplateId: card.cardTemplateId,
+      state: card.state,
+      due: card.due,
+      variantIndex: card.variantIndex,
+      frontHtml: '',
+      backHtml: '',
+      css: template.css,
+      occlusion: { imageUrl: note.imageUrl, masks: note.occlusionMasks },
+      note: { word: note.word, meaning: note.meaning, imageUrl: note.imageUrl, audioUrl: note.audioUrl },
+    };
+  }
+
+  private toBasicResponse(card: any, note: any): CardResponseDto {
     const template = card.cardTemplate;
 
     const fieldMap: Record<string, string> = {};

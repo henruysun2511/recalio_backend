@@ -67,4 +67,8 @@ export class UserService {
     if (!user) throw UserError.notFound();
     return user;
   }
+
+  async getLanguages(userId: string) {
+    return this.repo.findLanguages(userId);
+  }
 }

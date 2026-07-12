@@ -66,9 +66,14 @@ export class CardResponseDto {
   cardTemplateId: string;
   state: CardState;
   due: Date;
+  variantIndex?: number | null;
   frontHtml: string;
   backHtml: string;
   css: string;
+  occlusion?: {
+    imageUrl: string;
+    masks: { x: number; y: number; width: number; height: number; groupIndex: number; label?: string | null }[];
+  };
   note: {
     word?: string | null;
     meaning?: string | null;

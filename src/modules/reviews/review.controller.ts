@@ -15,6 +15,7 @@ import {
   CreateReviewDto,
   ReviewResponseDto,
   ReviewQueryDto,
+  LatestReviewResponseDto,
 } from './review.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -55,6 +56,18 @@ export class ReviewController {
     @Query() dto: ReviewQueryDto,
   ) {
     return this.service.getByDeck(deckId, dto);
+  }
+
+  @Get('latest')
+  @Public()
+  @ResponseMessage('Lấy danh sách đánh giá mới nhất thành công')
+  @SwaggerDoc({
+    summary: 'Get latest 10 reviews',
+    responseType: LatestReviewResponseDto,
+    isArray: true,
+  })
+  async getLatest() {
+    return this.service.getLatest();
   }
 
   @Delete(':id')

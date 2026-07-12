@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { AuthRepository } from './auth.repository';
-import { RegisterDto, LoginDto, ChangePasswordDto } from './auth.dto';
+import { RegisterDto, LoginDto, ChangePasswordDto, ForgotPasswordDto, VerifyOtpDto, ResetPasswordDto } from './auth.dto';
 import { AuthError } from './auth.error';
-import { AUTH_CONSTANTS } from './auth.constant';
+import { AUTH_CONSTANTS, forgotPasswordEmailHtml, resetPasswordSuccessEmailHtml } from './auth.constant';
+import { MailerService } from '../../infrastructures/mailer/mailer.service';
 import { IUserRequest } from '../../common/interfaces/user-request.interface';
 
 export interface GoogleProfile {
@@ -20,6 +21,7 @@ export class AuthService {
   constructor(
     private readonly repo: AuthRepository,
     private readonly jwt: JwtService,
+    private readonly mailer: MailerService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -122,6 +124,65 @@ export class AuthService {
     );
     await this.repo.updatePassword(userId, passwordHash);
     await this.repo.revokeUserRefreshTokens(userId);
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.repo.findByEmail(dto.email);
+    if (!user) throw AuthError.userNotFoundByEmail(dto.email);
+    if (!user.passwordHash) throw AuthError.googleLoginOnly();
+
+    const otpCode = crypto
+      .randomInt(0, 10 ** AUTH_CONSTANTS.OTP_LENGTH)
+      .toString()
+      .padStart(AUTH_CONSTANTS.OTP_LENGTH, '0');
+
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + AUTH_CONSTANTS.OTP_EXPIRY_MINUTES);
+
+    await this.repo.createOtp({
+      userId: user.id,
+      email: dto.email,
+      otpCode,
+      expiresAt,
+    });
+
+    const html = forgotPasswordEmailHtml(otpCode, user.displayName);
+    const sent = await this.mailer.sendMail(dto.email, 'Đặt lại mật khẩu — Recalio', html);
+
+    if (!sent) {
+      throw new InternalServerErrorException('Không thể gửi email, vui lòng thử lại sau');
+    }
+
+    return { message: 'Mã OTP đã được gửi đến email của bạn' };
+  }
+
+  async verifyOtp(dto: VerifyOtpDto) {
+    const otp = await this.repo.findValidOtp(dto.email, dto.otpCode);
+    if (!otp) throw AuthError.otpInvalidOrExpired();
+
+    return { message: 'Mã OTP hợp lệ' };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const otp = await this.repo.findValidOtp(dto.email, dto.otpCode);
+    if (!otp) throw AuthError.otpInvalidOrExpired();
+
+    await this.repo.markOtpUsed(otp.id);
+
+    const passwordHash = await bcrypt.hash(
+      dto.newPassword,
+      AUTH_CONSTANTS.BCRYPT_ROUNDS,
+    );
+    await this.repo.updatePassword(otp.userId, passwordHash);
+    await this.repo.revokeUserRefreshTokens(otp.userId);
+
+    const user = await this.repo.findById(otp.userId);
+    if (user) {
+      const html = resetPasswordSuccessEmailHtml(user.displayName);
+      await this.mailer.sendMail(dto.email, 'Mật khẩu đã được đặt lại — Recalio', html);
+    }
+
+    return { message: 'Mật khẩu đã được đặt lại thành công' };
   }
 
   async generateTokens(user: IUserRequest) {

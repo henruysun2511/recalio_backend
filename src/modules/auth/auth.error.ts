@@ -2,6 +2,7 @@ import {
   NotFoundException,
   ConflictException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 
 export class AuthError {
@@ -47,5 +48,17 @@ export class AuthError {
     return new UnauthorizedException(
       'Mật khẩu mới không được trùng với mật khẩu hiện tại',
     );
+  }
+
+  static userNotFoundByEmail(email: string) {
+    return new NotFoundException(`Không tìm thấy tài khoản với email "${email}"`);
+  }
+
+  static otpInvalidOrExpired() {
+    return new BadRequestException('Mã OTP không hợp lệ hoặc đã hết hạn');
+  }
+
+  static otpAlreadyUsed() {
+    return new BadRequestException('Mã OTP đã được sử dụng');
   }
 }

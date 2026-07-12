@@ -73,6 +73,23 @@ export class ReviewRepository {
     return { items, total };
   }
 
+  async findLatest(limit: number) {
+    return this.prisma.deckReview.findMany({
+      take: limit,
+      orderBy: { createdAt: SortOrder.DESC },
+      select: {
+        id: true,
+        rating: true,
+        comment: true,
+        createdAt: true,
+        user: { select: reviewUserSelect },
+        deck: {
+          select: { id: true, name: true, coverImage: true },
+        },
+      },
+    });
+  }
+
   async delete(id: string) {
     return this.prisma.deckReview.delete({ where: { id } });
   }

@@ -69,6 +69,49 @@ export class RefreshTokenDto {
   refreshToken: string;
 }
 
+export class ForgotPasswordDto {
+  @ApiProperty({ example: 'john@example.com' })
+  @IsEmail({}, { message: 'Email không hợp lệ' })
+  @Transform(({ value }) => value?.trim().toLowerCase())
+  email: string;
+}
+
+export class VerifyOtpDto {
+  @ApiProperty({ example: 'john@example.com' })
+  @IsEmail({}, { message: 'Email không hợp lệ' })
+  @Transform(({ value }) => value?.trim().toLowerCase())
+  email: string;
+
+  @ApiProperty({ example: '123456' })
+  @IsString({ message: 'Mã OTP phải là chuỗi kí tự' })
+  @MinLength(AUTH_CONSTANTS.OTP_LENGTH, { message: 'Mã OTP không hợp lệ' })
+  @MaxLength(AUTH_CONSTANTS.OTP_LENGTH, { message: 'Mã OTP không hợp lệ' })
+  otpCode: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty({ example: 'john@example.com' })
+  @IsEmail({}, { message: 'Email không hợp lệ' })
+  @Transform(({ value }) => value?.trim().toLowerCase())
+  email: string;
+
+  @ApiProperty({ example: '123456' })
+  @IsString({ message: 'Mã OTP phải là chuỗi kí tự' })
+  @MinLength(AUTH_CONSTANTS.OTP_LENGTH, { message: 'Mã OTP không hợp lệ' })
+  @MaxLength(AUTH_CONSTANTS.OTP_LENGTH, { message: 'Mã OTP không hợp lệ' })
+  otpCode: string;
+
+  @ApiProperty({ example: 'NewStrongPass456' })
+  @IsString({ message: 'Mật khẩu mới phải là chuỗi kí tự' })
+  @MinLength(AUTH_CONSTANTS.PASSWORD_MIN_LENGTH, {
+    message: 'Mật khẩu mới phải chứa ít nhất 6 kí tự',
+  })
+  @MaxLength(AUTH_CONSTANTS.PASSWORD_MAX_LENGTH, {
+    message: 'Mật khẩu mới phải chứa không quá 128 kí tự',
+  })
+  newPassword: string;
+}
+
 export class ChangePasswordDto {
   @ApiProperty({ example: 'OldPass123' })
   @IsString({ message: 'Mật khẩu hiện tại phải là chuỗi kí tự' })

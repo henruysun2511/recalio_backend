@@ -73,3 +73,34 @@ export class ReviewResponseDto {
   @ApiPropertyOptional({ type: ReviewUserDto })
   user?: ReviewUserDto;
 }
+
+export class LatestReviewDeckDto {
+  @ApiProperty({ example: 'uuid' })
+  id: string;
+
+  @ApiProperty({ example: 'English Vocabulary' })
+  name: string;
+
+  @ApiProperty({ example: 'https://example.com/cover.jpg', nullable: true })
+  coverImage: string | null;
+}
+
+export class LatestReviewResponseDto {
+  @ApiProperty({ example: 'uuid' })
+  id: string;
+
+  @ApiProperty({ example: 5 })
+  rating: number;
+
+  @ApiProperty({ example: 'Deck rất hữu ích!', nullable: true })
+  comment: string | null;
+
+  @ApiProperty({ example: '2026-06-16T10:00:00.000Z' })
+  createdAt: Date;
+
+  @ApiPropertyOptional({ type: ReviewUserDto })
+  user?: ReviewUserDto;
+
+  @ApiProperty({ type: LatestReviewDeckDto })
+  deck: LatestReviewDeckDto;
+}

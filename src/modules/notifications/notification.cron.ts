@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationType, NotificationChannel } from '@prisma/client';
 import { NotificationRepository } from './notification.repository';
 import { NotificationProducer } from '../../infrastructures/queue/producers/notification.producer';
+import { notificationEmailHtml } from './notification.constant';
 
 @Injectable()
 export class NotificationCron {
@@ -123,15 +124,7 @@ export class NotificationCron {
         .map((i) => `<li><b>${i.title}</b>${i.body ? `: ${i.body}` : ''}</li>`)
         .join('');
 
-      const html = `
-                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2>Xin chào ${group.name},</h2>
-                    <p>Bạn có thông báo mới từ Recalio:</p>
-                    <ul>${itemsHtml}</ul>
-                    <hr />
-                    <p style="color: #888; font-size: 12px;">Recalio — Học từ vựng thông minh</p>
-                </div>
-            `;
+      const html = notificationEmailHtml(group.name, itemsHtml);
 
       await this.notificationProducer.addEmailJob({
         email: group.email,

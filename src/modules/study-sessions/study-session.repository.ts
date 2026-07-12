@@ -116,8 +116,18 @@ export class StudySessionRepository {
         include: {
           card: {
             select: {
+              variantIndex: true,
               note: {
-                select: { word: true, meaning: true },
+                select: {
+                  word: true,
+                  meaning: true,
+                  fields: true,
+                  imageUrl: true,
+                  template: { select: { type: true } },
+                  occlusionMasks: {
+                    select: { x: true, y: true, width: true, height: true, groupIndex: true, label: true },
+                  },
+                },
               },
             },
           },

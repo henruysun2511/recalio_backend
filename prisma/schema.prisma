@@ -75,6 +75,7 @@ model User {
   suggestions      Suggestion[]
   postComments     PostComment[]
   postCommentLikes PostCommentLike[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
@@ -246,8 +247,9 @@ model Note {
   deck         Deck           @relation(fields: [deckId], references: [id], onDelete: Cascade)
   template     NoteTemplate   @relation(fields: [templateId], references: [id])
   language     Language       @relation(fields: [languageId], references: [id])
-  cards        Card[]
-  documentNote DocumentNote?
+  cards          Card[]
+  occlusionMasks OcclusionMask[]
+  documentNote   DocumentNote?
 
   @@index([userId])
   @@index([deckId])
@@ -274,7 +276,8 @@ model Card {
   userId         String
   noteId         String
   cardTemplateId String
-  deckId         String       
+  deckId         String
+  variantIndex   Int?         // null = BASIC/BASIC_REVERSED; N = cloze index / occlusion groupIndex
 
   state          CardState    @default(NEW)
 
@@ -301,10 +304,29 @@ model Card {
   deck         Deck         @relation(fields: [deckId], references: [id], onDelete: Cascade)
   reviewLogs   ReviewLog[]
 
+  @@unique([noteId, cardTemplateId, variantIndex])  // chống tạo trùng Card
   @@index([userId, due])      // query due cards — quan trọng nhất
   @@index([userId, state])
   @@index([deckId, state])
   @@map("cards")
+}
+
+// ─── OCCLUSION MASKS ────────────────────────────────────────
+
+model OcclusionMask {
+  id         String @id @default(uuid())
+  noteId     String
+  x          Float  // % theo chiều rộng ảnh, 0-100
+  y          Float
+  width      Float
+  height     Float
+  groupIndex Int    // các mask cùng groupIndex bị che chung ở 1 Card
+  label      String?
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([noteId])
+  @@map("occlusion_masks")
 }
 
 // ─── 5. REVIEW ENGINE ──────────────────────────────────────
@@ -588,6 +610,7 @@ enum NoteTemplateType {
   BASIC
   BASIC_REVERSED
   CLOZE
+  IMAGE_OCCLUSION
 }
 
 enum PartOfSpeech {
@@ -672,6 +695,22 @@ model PostComment {
   @@index([postId, createdAt])
   @@index([parentId])
   @@map("post_comments")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  email     String
+  otpCode   String
+  type      String    @default("PASSWORD_RESET")
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, otpCode])
+  @@map("password_reset_tokens")
 }
 
 model PostCommentLike {

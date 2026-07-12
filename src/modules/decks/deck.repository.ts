@@ -319,7 +319,6 @@ export class DeckRepository {
               select: {
                 id: true,
                 cardTemplateId: true,
-                flags: true,
               },
             },
           },
@@ -390,7 +389,6 @@ export class DeckRepository {
             noteId: oldToNewNoteId.get(note.id)!,
             cardTemplateId: card.cardTemplateId,
             deckId: newDeckId,
-            flags: card.flags,
             state: CardState.NEW,
             due: new Date(),
             interval: 0,

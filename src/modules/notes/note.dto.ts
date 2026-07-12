@@ -4,6 +4,8 @@ import {
   IsEnum,
   IsArray,
   IsNotEmpty,
+  IsNumber,
+  IsInt,
   MaxLength,
   ArrayMaxSize,
   IsObject,
@@ -13,7 +15,7 @@ import {
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PartOfSpeech } from '@prisma/client';
+import { PartOfSpeech, NoteTemplateType } from '@prisma/client';
 import { NOTE_CONSTANTS } from './note.constant';
 import { SearchDto } from '../../common/dtos/search.dto';
 
@@ -25,6 +27,11 @@ export class NoteQueryDto extends SearchDto {
   @IsString({ message: 'sort phải là chuỗi kí tự' })
   @IsIn(NOTE_CONSTANTS.SORT_FIELDS, { message: 'sort không hợp lệ' })
   sort?: 'createdAt' | 'updatedAt' | 'word' = 'createdAt';
+
+  @ApiPropertyOptional({ example: 'uuid' })
+  @IsOptional()
+  @IsString({ message: 'templateId phải là chuỗi kí tự' })
+  templateId?: string;
 }
 
 // ─── Update (PATCH /notes/:id) ───────────────────────────
@@ -96,6 +103,40 @@ export class UpdateNoteDto {
   fields?: Record<string, unknown>;
 }
 
+// ─── Occlusion Mask ──────────────────────────────────────
+
+export class OcclusionMaskDto {
+  @ApiProperty({ example: 12.5 })
+  @Type(() => Number)
+  @IsNumber({}, { message: 'x phải là số' })
+  x: number;
+
+  @ApiProperty({ example: 20 })
+  @Type(() => Number)
+  @IsNumber({}, { message: 'y phải là số' })
+  y: number;
+
+  @ApiProperty({ example: 15 })
+  @Type(() => Number)
+  @IsNumber({}, { message: 'width phải là số' })
+  width: number;
+
+  @ApiProperty({ example: 8 })
+  @Type(() => Number)
+  @IsNumber({}, { message: 'height phải là số' })
+  height: number;
+
+  @ApiProperty({ example: 1 })
+  @Type(() => Number)
+  @IsInt({ message: 'groupIndex phải là số nguyên' })
+  groupIndex: number;
+
+  @ApiPropertyOptional({ example: 'Nhân' })
+  @IsOptional()
+  @IsString({ message: 'label phải là chuỗi kí tự' })
+  label?: string;
+}
+
 // ─── Response ────────────────────────────────────────────
 
 export class NoteResponseDto {
@@ -137,6 +178,12 @@ export class NoteResponseDto {
 
   @ApiProperty({ example: {} })
   fields: Record<string, unknown>;
+
+  @ApiPropertyOptional({ enum: NoteTemplateType, example: 'BASIC' })
+  templateType?: NoteTemplateType;
+
+  @ApiPropertyOptional({ type: [OcclusionMaskDto] })
+  occlusionMasks?: OcclusionMaskDto[];
 
   @ApiProperty({ example: '2026-06-16T10:00:00.000Z' })
   createdAt: Date;
@@ -252,6 +299,13 @@ export class ConfirmWordDto {
   @IsOptional()
   @IsObject({ message: 'fields phải là object' })
   fields?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: [OcclusionMaskDto] })
+  @IsOptional()
+  @IsArray({ message: 'masks phải là mảng' })
+  @ValidateNested({ each: true })
+  @Type(() => OcclusionMaskDto)
+  masks?: OcclusionMaskDto[];
 }
 
 export class ConfirmNoteDto {

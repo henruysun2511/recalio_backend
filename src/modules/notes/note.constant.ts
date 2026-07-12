@@ -1,3 +1,5 @@
+export const CLOZE_MARKER_REGEX = /\{\{c(\d+)::(.*?)\}\}/g;
+
 export const NOTE_CONSTANTS = {
   TAG_MAX: 20,
   TAG_MAX_LENGTH: 50,

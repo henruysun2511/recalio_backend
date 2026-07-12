@@ -20,9 +20,11 @@ import {
   AudioSource,
   WordPreviewItem,
   PreviewSummary,
+  CLOZE_MARKER_REGEX,
 } from './note.constant';
 import { NoteAudioProducer } from '../../infrastructures/queue/producers/note-audio.producer';
 import { NOTE_CONSTANTS } from './note.constant';
+import { PrismaService } from '../../infrastructures/prisma/prisma.service';
 
 @Injectable()
 export class NoteService {
@@ -37,6 +39,7 @@ export class NoteService {
     private readonly tts: TtsService,
     private readonly languageService: LanguageService,
     private readonly noteAudioProducer: NoteAudioProducer,
+    private readonly prisma: PrismaService,
   ) {}
 
   async preview(
@@ -172,6 +175,29 @@ export class NoteService {
       }),
     );
 
+    // Lấy type của từng template để xử lý variantIndices
+    const templateInfos = await Promise.all(
+      createTemplateIds.map((tid) => this.noteTemplateService.findById(tid)),
+    );
+    const templateTypeMap = new Map(templateInfos.map((t) => [t.id, t.type]));
+
+    // Validate + tính variantIndices cho từng word cần tạo
+    const itemsWithVariants = toCreate.map((w) => {
+      const type = templateTypeMap.get(w.templateId!);
+      if (type === 'CLOZE') {
+        const text = (w.fields?.Text as string) ?? '';
+        const indices = this.extractClozeIndices(text);
+        if (indices.length === 0) throw NoteError.invalidClozeSyntax();
+        return { ...w, variantIndices: indices };
+      }
+      if (type === 'IMAGE_OCCLUSION') {
+        if (!w.masks || w.masks.length === 0) throw NoteError.invalidOcclusionMasks();
+        const indices = [...new Set(w.masks.map((m) => m.groupIndex))].sort((a, b) => a - b);
+        return { ...w, variantIndices: indices };
+      }
+      return { ...w, variantIndices: null };
+    });
+
     for (const item of toUpdate) {
       const updateData: Record<string, unknown> = {};
       if (item.templateId !== undefined)
@@ -192,7 +218,7 @@ export class NoteService {
     }
 
     if (dto.words.length === 1 && !dto.words[0].id) {
-      const word = dto.words[0];
+      const word = itemsWithVariants[0];
       const created = await this.repo.createBatch(
         userId,
         dto.deckId,
@@ -200,7 +226,7 @@ export class NoteService {
         cardTemplateMap,
       );
       const note = created[0];
-      if (note && !note.audioUrl) {
+      if (note && note.word && !note.audioUrl) {
         const audioUrl = await this.resolveAudio(
           note.word ?? '',
           note.languageId,
@@ -209,6 +235,7 @@ export class NoteService {
           await this.repo.update(note.id, { audioUrl });
         }
       }
+      await this.syncUserLanguages(userId, [note.languageId]);
       this.logger.log(`User ${userId}: 1 note created inline`);
       return { created: 1, updated: 0, audioJobs: 0 };
     }
@@ -217,12 +244,16 @@ export class NoteService {
       ? await this.repo.createBatch(
           userId,
           dto.deckId,
-          toCreate as any,
+          itemsWithVariants as any,
           cardTemplateMap,
         )
       : [];
 
-    const audioJobs = created.filter((n) => !n.audioUrl);
+    // Bug fix: không sinh audio job cho Cloze/Occlusion (không có word)
+    const audioJobs = created.filter((n) => {
+      if (!n.word) return false;
+      return !n.audioUrl;
+    });
     if (audioJobs.length) {
       await this.noteAudioProducer.addBulk(
         audioJobs.map((n) => ({
@@ -230,6 +261,13 @@ export class NoteService {
           word: n.word ?? '',
           language: n.languageId,
         })),
+      );
+    }
+
+    if (created.length) {
+      await this.syncUserLanguages(
+        userId,
+        created.map((n) => n.languageId),
       );
     }
 
@@ -242,6 +280,29 @@ export class NoteService {
       updated: toUpdate.length,
       audioJobs: audioJobs.length,
     };
+  }
+
+  private extractClozeIndices(text: string): number[] {
+    const indices = new Set<number>();
+    let match;
+    const regex = new RegExp(CLOZE_MARKER_REGEX);
+    while ((match = regex.exec(text)) !== null) {
+      indices.add(Number(match[1]));
+    }
+    return [...indices].sort((a, b) => a - b);
+  }
+
+  private async syncUserLanguages(userId: string, languageIds: string[]) {
+    const uniqueIds = [...new Set(languageIds)];
+    await Promise.all(
+      uniqueIds.map((languageId) =>
+        this.prisma.userLanguage.upsert({
+          where: { userId_languageId: { userId, languageId } },
+          update: {},
+          create: { userId, languageId, isActive: true },
+        }),
+      ),
+    );
   }
 
   private async resolveAudio(
@@ -273,7 +334,13 @@ export class NoteService {
     if (!ownerId) throw NoteError.deckNotAccessible();
 
     const { items, total } = await this.repo.findByDeck(deckId, dto);
-    return paginate(items, total, dto);
+    const mapped = items.map((item: any) => ({
+      ...item,
+      templateType: item.template?.type ?? null,
+      occlusionMasks: item.occlusionMasks ?? [],
+      template: undefined,
+    }));
+    return paginate(mapped, total, dto);
   }
 
   async update(userId: string, id: string, dto: UpdateNoteDto) {
@@ -306,6 +373,9 @@ export class NoteService {
       dto.items,
       cardTemplateMap,
     );
+    if (created.length) {
+      await this.syncUserLanguages(userId, [dto.languageId]);
+    }
     return { created: created.length };
   }
 

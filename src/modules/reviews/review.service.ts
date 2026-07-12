@@ -27,6 +27,10 @@ export class ReviewService {
     return paginate(items, total, dto);
   }
 
+  async getLatest() {
+    return this.repo.findLatest(10);
+  }
+
     async delete(userId: string, reviewId: string) {
         const review = await this.repo.findById(reviewId);
         if (!review) throw ReviewError.notFound();

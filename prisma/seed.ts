@@ -103,7 +103,7 @@ const TEMPLATES = [
     },
     {
         name: 'Image Occlusion',
-        type: NoteTemplateType.BASIC,
+        type: NoteTemplateType.IMAGE_OCCLUSION,
         fieldNames: ['Image', 'Label'],
         cardTemplates: [
             {

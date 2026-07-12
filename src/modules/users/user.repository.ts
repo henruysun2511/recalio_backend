@@ -146,4 +146,16 @@ export class UserRepository {
       select: userSelect,
     });
   }
+
+  async findLanguages(userId: string) {
+    return this.prisma.userLanguage.findMany({
+      where: { userId },
+      include: {
+        language: {
+          select: { id: true, name: true, nativeName: true, flagEmoji: true },
+        },
+      },
+      orderBy: { startedAt: 'desc' },
+    });
+  }
 }
