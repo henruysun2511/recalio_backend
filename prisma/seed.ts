@@ -127,6 +127,19 @@ const TEMPLATES = [
             },
         ],
     },
+    {
+        name: 'Basic (Audio Front)',
+        type: NoteTemplateType.BASIC_AUDIO,
+        fieldNames: ['Word', 'Meaning', 'IPA', 'PartOfSpeech', 'Example', 'Image', 'Audio'],
+        cardTemplates: [
+            {
+                name: 'Card 1',
+                frontHtml: '<div class="word">{{Word}}</div><div class="media">{{Audio}}</div>',
+                backHtml: '<div class="word">{{Word}}</div><div class="ipa">{{IPA}}</div><div class="pos">{{PartOfSpeech}}</div><div class="media">{{Image}}</div><hr id="answer"><div class="meaning">{{Meaning}}</div><div class="example">{{Example}}</div><div class="media">{{Audio}}</div>',
+                css: '.card { font-family: Arial; font-size: 20px; color: #333; text-align: center; }.word { font-size: 28px; font-weight: bold; }.ipa { font-style: italic; color: #888; }.meaning { font-size: 18px; }.example { font-size: 16px; font-style: italic; color: #555; margin-top: 8px; }.pos { font-size: 12px; color: #aaa; }.media { margin: 8px 0; }',
+            },
+        ],
+    },
 ];
 
 const ACHIEVEMENTS = [

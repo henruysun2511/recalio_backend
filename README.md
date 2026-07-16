@@ -1,98 +1,250 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🗂️ RECALIO — Backend API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS backend cho nền tảng học từ vựng **Recalio** — sử dụng thuật toán lặp lại ngắt quãng (SM-2 / FSRS), hỗ trợ nhiều loại mẫu thẻ, tích hợp AI, âm thanh tự động, và cộng đồng chia sẻ bộ thẻ.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 🛠️ Công nghệ
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+| Công nghệ | Mục đích |
+|-----------|----------|
+| **NestJS 11** | Framework Node.js (TypeScript) |
+| **PostgreSQL** + **Prisma 7** | Database & ORM |
+| **BullMQ** + **Redis** | Hàng đợi xử lý bất đồng bộ (audio, notification) |
+| **Passport** (JWT + Google OAuth) | Xác thực & phân quyền |
+| **Cloudinary** | Lưu trữ media (ảnh, audio) |
+| **Google Gemini / OpenAI** | AI sinh nội dung từ vựng |
+| **Winston** + **Logtail** | Logging |
+| **Nodemailer** | Gửi email (OTP, thông báo) |
+| **Swagger** | Tài liệu API tự động |
 
-## Project setup
+---
 
-```bash
-$ npm install
+## 📁 Cấu trúc dự án
+
+```
+recalio_be/
+├── prisma/
+│   ├── schema.prisma          # 32 models, 11 enums
+│   └── seed.ts                # Languages + Templates + Achievements
+├── src/
+│   ├── main.ts                # Bootstrap (CORS, pipes, guards, Swagger)
+│   ├── app.module.ts          # Root module (21 feature modules)
+│   ├── common/                # Guards, interceptors, decorators, filters, DTOs
+│   ├── config/                # Config by feature (app, jwt, redis, queue, ai...)
+│   ├── infrastructures/       # Prisma, Cloudinary, Queue, Mailer, Logger
+│   ├── shared/                # Global module (Config, Logger, Prisma, JWT)
+│   ├── types/                 # TypeScript ambient declarations
+│   └── modules/               # 21 feature modules
+│       ├── auth/                  # JWT + Google OAuth
+│       ├── users/                 # User CRUD, admin
+│       ├── decks/                 # Deck tree, marketplace, clone
+│       ├── deck-settings/         # SRS algorithm config per deck
+│       ├── notes/                 # Notes CRUD, audio generation worker
+│       ├── cards/                 # Card SRS state management
+│       ├── note-templates/        # Note type templates (Basic, Cloze, Occlusion)
+│       ├── study-sessions/        # Study session grouping
+│       ├── reviews/               # SM-2 + FSRS review engine
+│       ├── ai/                    # Gemini/OpenAI integration
+│       ├── audio/                 # TTS (Google) + Dictionary API + Cache
+│       ├── gamification/          # XP, levels, streaks
+│       ├── achievement/           # Badge/achievement system
+│       ├── notifications/         # In-app + email, cron jobs
+│       ├── follows/               # User follow/unfollow
+│       ├── posts/                 # Community posts
+│       ├── post-comments/         # Nested comments
+│       ├── reports/               # Deck & post reporting
+│       ├── languages/             # Supported languages
+│       ├── suggestions/           # User feedback
+│       └── admin/                 # Admin dashboard
+└── docs/                      # Documentation (ERD, flows, queues)
 ```
 
-## Compile and run the project
+---
+
+## 🚀 Cài đặt & Chạy
+
+### Yêu cầu
+
+- Node.js >= 18
+- PostgreSQL
+- Redis
+
+### Bước 1: Cài đặt
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cd recalio_be
+npm install
 ```
 
-## Run tests
+### Bước 2: Cấu hình biến môi trường
+
+Tạo file `.env` với các biến sau:
+
+```env
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/recalio
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# JWT
+JWT_ACCESS_SECRET=your-access-secret
+JWT_REFRESH_SECRET=your-refresh-secret
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:3001/auth/callback
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+CLOUDINARY_AUDIO_FOLDER=recalio/audio
+
+# AI Provider (gemini | openai)
+AI_PROVIDER=gemini
+GEMINI_API_KEY=your-gemini-key
+OPENAI_API_KEY=your-openai-key
+
+# SMTP
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
+# App
+PORT=3000
+CORS_ORIGINS=http://localhost:3001
+NODE_ENV=development
+
+# Logtail (optional)
+LOGTAIL_SOURCE_TOKEN=
+```
+
+### Bước 3: Database
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npx prisma generate
+npx prisma db push
+npx prisma db seed
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Bước 4: Chạy
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run start:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+API tại: **http://localhost:3000/api/v1**  
+Swagger: **http://localhost:3000/api/docs**
 
-## Resources
+---
 
-Check out a few resources that may come in handy when working with NestJS:
+## 🧠 Kiến trúc chính
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### Xác thực
 
-## Support
+- JWT access token (15 phút) + refresh token (7 ngày)
+- Google OAuth 2.0
+- Role-based guard (User / Admin / Moderator)
+- Middleware kiểm tra token hết hạn, tự động refresh
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Hệ thống Note → Card
 
-## Stay in touch
+```
+Template → Note → Card (1-n)
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- **NoteTemplate**: Định nghĩa loại thẻ (Basic, Cloze, Image Occlusion...) với danh sách field
+- **CardTemplate**: HTML/CSS front/back cho mỗi loại thẻ
+- **Note**: Dữ liệu gốc (word, meaning, ipa...)
+- **Card**: Thẻ được sinh ra từ Note, theo dõi trạng thái SRS
 
-## License
+### Thuật toán SRS
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Hai thuật toán song song:
+
+| Thuật toán | Tham số chính |
+|------------|---------------|
+| **SM-2** | interval, easeFactor, repetitions |
+| **FSRS** | stability, difficulty, retrievability (tính từ stability) |
+
+Mỗi deck cấu hình riêng (learning steps, intervals, leech threshold...).
+
+### Xử lý bất đồng bộ (BullMQ)
+
+| Queue | Worker | Mô tả |
+|-------|--------|-------|
+| `add-note` | `NoteProcessor` | Sinh audio tự động (cache → dictionary → TTS) |
+| `notification` | `NotificationProcessor` | Gửi email thông báo |
+
+### Sinh audio tự động
+
+```
+Note được tạo (có word, không audioUrl)
+    → Kiểm tra AudioCache (text + language)
+    → Dictionary API (English)
+    → Google TTS fallback
+    → Upload Cloudinary → Lưu cache → Cập nhật note.audioUrl
+```
+
+---
+
+## 📦 Database Models (32 models)
+
+| Model | Mô tả |
+|-------|-------|
+| `User` | Người dùng (username, email, password hash, googleId, role) |
+| `RefreshToken` | JWT refresh token store |
+| `Language` | Ngôn ngữ hỗ trợ (ISO 639-1) |
+| `UserLanguage` | Ngôn ngữ người dùng đang học |
+| `Deck` | Bộ thẻ (cây phân cấp, marketplace) |
+| `DeckSetting` | Cấu hình SRS theo deck |
+| `NoteTemplate` | Mẫu note (Basic, Cloze, Occlusion...) |
+| `CardTemplate` | HTML/CSS front/back template |
+| `Note` | Ghi chú từ vựng (word, meaning, ipa, audio, image) |
+| `Card` | Thẻ học (SRS state: due, interval, ease) |
+| `OcclusionMask` | Vùng che ảnh cho Image Occlusion |
+| `ReviewLog` | Lịch sử đánh giá từng thẻ |
+| `StudySession` | Phiên ôn tập |
+| `AudioCache` | Cache audio TTS |
+| `Post` | Bài viết cộng đồng |
+| `Achievement` | Thành tích / huy hiệu |
+| `UserXP` | XP, level, streak |
+| ... | *(Xem schema.prisma đầy đủ)* |
+
+---
+
+## 🔌 API Endpoints
+
+Prefix: `/api/v1`
+
+| Module | Endpoints |
+|--------|-----------|
+| **Auth** | `POST auth/register`, `POST auth/login`, `POST auth/refresh`, `POST auth/logout`, `GET auth/google`, `POST auth/forgot-password`, `POST auth/reset-password` |
+| **Users** | `GET users/me`, `PATCH users/me`, `GET users/:username`, `GET users` (admin) |
+| **Decks** | `GET decks`, `POST decks`, `GET decks/featured`, `GET decks/:id`, `PATCH decks/:id`, `DELETE decks/:id`, `POST decks/:id/clone` |
+| **Notes** | `GET notes/decks/:deckId`, `POST notes/preview`, `POST notes/confirm`, `PATCH notes/:id`, `DELETE notes/:id` |
+| **Cards** | `GET cards/due`, `GET cards/decks/:deckId`, `GET cards/stats`, `GET cards/:id`, `POST cards/:id/review`, `PATCH cards/:id/suspend` |
+| **Reviews** | `POST reviews` (SM-2/FSRS engine) |
+| **AI** | `POST ai/extract-from-text`, `POST ai/extract-from-topic`, `POST ai/related-notes`, `POST ai/process-document`, `POST ai/detect-image` |
+| **Cloudinary** | `POST cloudinaries/media` (upload), `DELETE cloudinaries/media` |
+| **Gamification** | `GET xp`, `GET streak`, `GET daily-goal`, `PATCH daily-goal`, `GET leaderboard`, `GET study-calendar`, `GET stats/review`, `GET stats/heatmap` |
+| **Notifications** | `GET notifications`, `PATCH notifications/:id/read`, `GET notification-settings`, `PATCH notification-settings` |
+| **Admin** | `GET admin/overview`, `GET admin/users`, `PATCH admin/users/:id`, `GET admin/decks`, `PATCH admin/decks/:id/ban`, `GET admin/reports`, `PATCH admin/reports/:id` |
+
+---
+
+## 📄 Tài liệu khác
+
+- [`docs/er-diagram.md`](docs/er-diagram.md) — Sơ đồ quan hệ thực thể
+- [`docs/note-flow.md`](docs/note-flow.md) — Luồng tạo note
+- [`docs/study-flow.md`](docs/study-flow.md) — Luồng ôn tập
+- [`docs/queue-system.md`](docs/queue-system.md) — Hệ thống hàng đợi
+- [`docs/notification-flow.md`](docs/notification-flow.md) — Luồng thông báo
+- [`docs/features.md`](docs/features.md) — Tổng quan tính năng
