@@ -242,7 +242,6 @@ Prefix: `/api/v1`
 
 ## 📄 Tài liệu khác
 
-- [`docs/er-diagram.md`](docs/er-diagram.md) — Sơ đồ quan hệ thực thể
 - [`docs/note-flow.md`](docs/note-flow.md) — Luồng tạo note
 - [`docs/study-flow.md`](docs/study-flow.md) — Luồng ôn tập
 - [`docs/queue-system.md`](docs/queue-system.md) — Hệ thống hàng đợi
