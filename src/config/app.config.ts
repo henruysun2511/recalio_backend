@@ -47,7 +47,7 @@ export const AppConfig = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
   GOOGLE_CALLBACK_URL:
     process.env.GOOGLE_CALLBACK_URL ??
-    'http://localhost:3000/api/v1/auth/callback',
+    'https://recalio-backend.onrender.com/api/v1/auth/callback',
 
   // SMTP
   SMTP_HOST: process.env.SMTP_HOST ?? 'smtp.gmail.com',
