@@ -71,14 +71,32 @@ export class NoteRepository {
   }
 
   async update(id: string, dto: UpdateNoteDto) {
-    const data: any = { ...dto };
+    const { masks, ...rest } = dto;
+    const data: any = { ...rest };
     if (dto.fields) {
       data.fields = dto.fields as Prisma.InputJsonValue;
     }
-    return this.prisma.note.update({
-      where: { id },
-      data,
-      select: noteSelect,
+    return this.prisma.$transaction(async (tx) => {
+      if (masks) {
+        await tx.occlusionMask.deleteMany({ where: { noteId: id } });
+        await tx.occlusionMask.createMany({
+          data: masks.map((m) => ({
+            id: crypto.randomUUID(),
+            noteId: id,
+            x: m.x,
+            y: m.y,
+            width: m.width,
+            height: m.height,
+            groupIndex: m.groupIndex,
+            label: m.label,
+          })),
+        });
+      }
+      return tx.note.update({
+        where: { id },
+        data,
+        select: noteSelect,
+      });
     });
   }
 

@@ -16,6 +16,7 @@ async function bootstrap() {
     origin: AppConfig.CORS_ORIGINS,
     methods: AppConfig.CORS_METHODS,
     credentials: AppConfig.CORS_CREDENTIALS,
+    exposedHeaders: ['Content-Disposition'],
   });
 
   const reflector = app.get(Reflector);

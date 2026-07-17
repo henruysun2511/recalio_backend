@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructures/prisma/prisma.service';
 import { CreateDeckDto, UpdateDeckDto, QueryDeckDto } from './deck.dto';
 import { SortOrder } from '../../common/enums/sort.enum';
-import { Prisma, CardState } from '@prisma/client';
+import { Prisma, CardState, NoteTemplateType } from '@prisma/client';
 
 const deckListSelect = {
   id: true,
@@ -60,7 +60,7 @@ export class DeckRepository {
         isPublic: dto.isPublic ?? false,
         tags: dto.tags ?? [],
         parentId: dto.parentId,
-        setting: { create: {} },
+        setting: dto.setting ? { create: dto.setting as any } : { create: {} },
       },
       select: deckMySelect,
     });
@@ -533,5 +533,106 @@ export class DeckRepository {
     ]);
 
     return { items, total };
+  }
+
+  async findFullExportData(deckId: string) {
+    return this.prisma.deck.findUnique({
+      where: { id: deckId },
+      select: {
+        name: true,
+        fullPath: true,
+        description: true,
+        coverImage: true,
+        tags: true,
+        setting: {
+          select: {
+            algorithm: true,
+            newCardsPerDay: true,
+            reviewsPerDay: true,
+            learningSteps: true,
+            graduatingInterval: true,
+            easyInterval: true,
+            intervalModifier: true,
+            easyBonus: true,
+            hardInterval: true,
+            maximumInterval: true,
+            lapseSteps: true,
+            minimumInterval: true,
+            leechThreshold: true,
+            leechAction: true,
+            fsrsWeights: true,
+            requestRetention: true,
+          },
+        },
+        notes: {
+          where: { deletedAt: null },
+          select: {
+            id: true,
+            template: { select: { type: true, fieldNames: true } },
+            templateId: true,
+            languageId: true,
+            word: true,
+            meaning: true,
+            ipa: true,
+            partOfSpeech: true,
+            example: true,
+            audioUrl: true,
+            imageUrl: true,
+            tags: true,
+            fields: true,
+            cards: {
+              select: {
+                cardTemplate: { select: { name: true, frontHtml: true, backHtml: true, css: true } },
+                variantIndex: true,
+              },
+            },
+            occlusionMasks: {
+              select: { x: true, y: true, width: true, height: true, groupIndex: true, label: true },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async findNoteTemplatesByTypes(types: NoteTemplateType[]) {
+    return this.prisma.noteTemplate.findMany({
+      where: { type: { in: types } },
+      select: {
+        id: true,
+        type: true,
+        fieldNames: true,
+        cardTemplates: {
+          select: { id: true, name: true, frontHtml: true, backHtml: true, css: true },
+        },
+      },
+    });
+  }
+
+  async createFullImport(userId: string, deckData: any, notesData: any[], cardsData: any[], masksData: any[]) {
+    return this.prisma.$transaction(async (tx) => {
+      const deck = await tx.deck.create({
+        data: {
+          userId,
+          name: deckData.name,
+          fullPath: deckData.fullPath ?? deckData.name,
+          description: deckData.description,
+          coverImage: deckData.coverImage,
+          tags: deckData.tags ?? [],
+          setting: deckData.setting ? { create: deckData.setting } : { create: {} },
+        },
+        select: { id: true, name: true },
+      });
+
+      if (notesData.length) {
+        await tx.note.createMany({ data: notesData });
+        await tx.card.createMany({ data: cardsData });
+        if (masksData.length) {
+          await tx.occlusionMask.createMany({ data: masksData });
+        }
+      }
+
+      return deck;
+    });
   }
 }

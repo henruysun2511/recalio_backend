@@ -8,9 +8,12 @@ import {
   ReviewCardDto,
   CardResponseDto,
   CardStatsDto,
+  CustomSessionCardsQueryDto,
 } from './card.dto';
-import { CardState, ReviewRating } from '@prisma/client';
+import { CardState, ReviewRating, Algorithm, SessionType } from '@prisma/client';
 import { CARD_CONSTANTS } from './card.constant';
+import { calculateFsrs, parseFsrsWeights } from './fsrs.util';
+import { StudySessionService } from '../study-sessions/study-session.service';
 
 const CLOZE_MARKER_REGEX = /\{\{c(\d+)::(.*?)\}\}/g;
 import { paginate } from '../../common/utils/paginate.util';
@@ -24,6 +27,7 @@ export class CardService {
     private readonly repo: CardRepository,
     private readonly deckService: DeckService,
     private readonly gamificationService: GamificationService,
+    private readonly sessionService: StudySessionService,
   ) {}
 
   async getDueCards(userId: string, dto: DueCardsQueryDto) {
@@ -39,6 +43,24 @@ export class CardService {
         userId,
       );
       if (!ownerId) throw CardError.notFound();
+    }
+
+    if (dto.mode === 'cram' && dto.deckId) {
+      const items = await this.repo.findCramCards(userId, dto.deckId, limit);
+      return paginate(
+        items.map((item) => this.toResponse(item)),
+        items.length,
+        { page, limit: items.length } as PaginationDto,
+      );
+    }
+
+    if (dto.mode === 'preview' && dto.deckId) {
+      const items = await this.repo.findPreviewCards(userId, dto.deckId, limit);
+      return paginate(
+        items.map((item) => this.toResponse(item)),
+        items.length,
+        { page, limit: items.length } as PaginationDto,
+      );
     }
 
     let newLimit: number | null = null;
@@ -70,6 +92,34 @@ export class CardService {
       total,
       { page, limit } as PaginationDto,
     );
+  }
+
+  async getCustomSessionCards(userId: string, dto: CustomSessionCardsQueryDto) {
+    const ownerId = await this.deckService.checkReadAccess(
+      dto.deckId,
+      userId,
+    );
+    if (!ownerId) throw CardError.notFound();
+
+    const session = await this.sessionService.getSessionType(userId, dto.sessionId);
+    if (!session) throw CardError.notFound();
+
+    const limit = Math.min(
+      dto.limit ?? CARD_CONSTANTS.MAX_LIMIT,
+      CARD_CONSTANTS.MAX_LIMIT,
+    );
+
+    let items;
+    if (session === SessionType.PREVIEW) {
+      items = await this.repo.findPreviewCards(userId, dto.deckId, limit);
+    } else {
+      items = await this.repo.findCramCards(userId, dto.deckId, limit);
+    }
+
+    return {
+      items: items.map((item) => this.toResponse(item)),
+      total: items.length,
+    };
   }
 
   async findByDeck(
@@ -115,49 +165,128 @@ export class CardService {
     const easeBefore = card.easeFactor;
 
     const rawSettings = (card as any).deck?.setting ?? null;
-    const settings = rawSettings
-      ? {
-          learningSteps:
-            rawSettings.learningSteps?.split(' ').map(Number) ??
-            CARD_CONSTANTS.LEARNING_STEPS,
-          graduatingInterval:
-            rawSettings.graduatingInterval ??
-            CARD_CONSTANTS.GRADUATING_INTERVAL,
-          easyInterval:
-            rawSettings.easyInterval ?? CARD_CONSTANTS.EASY_INTERVAL,
-          intervalModifier: rawSettings.intervalModifier ?? 1,
-          easyBonus: rawSettings.easyBonus ?? CARD_CONSTANTS.EASY_BONUS,
-          hardInterval:
-            rawSettings.hardInterval ?? CARD_CONSTANTS.HARD_INTERVAL,
-          maximumInterval:
-            rawSettings.maximumInterval ?? CARD_CONSTANTS.MAX_INTERVAL,
-          lapseSteps:
-            rawSettings.lapseSteps?.split(' ').map(Number) ??
-            CARD_CONSTANTS.RELEARNING_STEPS,
-          minimumInterval: rawSettings.minimumInterval ?? 1,
-        }
-      : undefined;
-    const result = this.calculateSM2(
-      dto.rating,
-      card.state,
-      card.interval,
-      card.easeFactor,
-      card.repetitions,
-      card.lapses,
-      card.currentStep,
-      settings,
-    );
+    const algorithm = rawSettings?.algorithm ?? Algorithm.SM2;
 
-    await this.repo.update(id, {
-      state: result.newState,
-      interval: result.newInterval,
-      easeFactor: result.newEase,
-      repetitions: result.newReps,
-      lapses: result.newLapses,
-      currentStep: result.newStep,
-      due: result.newDue,
+    let isPreview = false;
+    if (dto.sessionId) {
+      const sessionType = await this.sessionService.getSessionType(userId, dto.sessionId);
+      isPreview = sessionType === SessionType.PREVIEW;
+    }
+
+    let result: ReturnType<typeof this.calculateSM2>;
+    let fsrsStability: number | undefined;
+    let fsrsDifficulty: number | undefined;
+    let easeAfter: number;
+
+    if (algorithm === Algorithm.FSRS && !isPreview) {
+      const weights = parseFsrsWeights(rawSettings.fsrsWeights);
+      const elapsedDays = card.lastReviewAt
+        ? Math.max(0, (now.getTime() - card.lastReviewAt.getTime()) / 86400000)
+        : 0;
+      const fsrsResult = calculateFsrs(
+        dto.rating,
+        card.state as 'NEW' | 'LEARNING' | 'RELEARNING' | 'REVIEW',
+        elapsedDays,
+        card.fsrsStability ?? 0,
+        card.fsrsDifficulty ?? 5,
+        {
+          weights,
+          requestRetention: rawSettings.requestRetention ?? 0.9,
+          maximumInterval: rawSettings.maximumInterval ?? CARD_CONSTANTS.MAX_INTERVAL,
+          minimumInterval: 1,
+          easyBonus: rawSettings.easyBonus ?? CARD_CONSTANTS.EASY_BONUS,
+          hardInterval: rawSettings.hardInterval ?? CARD_CONSTANTS.HARD_INTERVAL,
+        },
+      );
+      const sm2Result = this.calculateSM2(
+        dto.rating,
+        card.state,
+        card.interval,
+        card.easeFactor,
+        card.repetitions,
+        card.lapses,
+        card.currentStep,
+        undefined,
+      );
+      result = {
+        newState: sm2Result.newState,
+        newInterval: fsrsResult.interval,
+        newEase: 0,
+        newReps: card.repetitions,
+        newLapses: sm2Result.newLapses,
+        newStep: card.currentStep,
+        newDue: fsrsResult.due,
+      };
+      fsrsStability = fsrsResult.stability;
+      fsrsDifficulty = fsrsResult.difficulty;
+      easeAfter = card.easeFactor;
+    } else {
+      const settings = rawSettings
+        ? {
+            learningSteps:
+              rawSettings.learningSteps?.split(' ').map(Number) ??
+              CARD_CONSTANTS.LEARNING_STEPS,
+            graduatingInterval:
+              rawSettings.graduatingInterval ??
+              CARD_CONSTANTS.GRADUATING_INTERVAL,
+            easyInterval:
+              rawSettings.easyInterval ?? CARD_CONSTANTS.EASY_INTERVAL,
+            intervalModifier: rawSettings.intervalModifier ?? 1,
+            easyBonus: rawSettings.easyBonus ?? CARD_CONSTANTS.EASY_BONUS,
+            hardInterval:
+              rawSettings.hardInterval ?? CARD_CONSTANTS.HARD_INTERVAL,
+            maximumInterval:
+              rawSettings.maximumInterval ?? CARD_CONSTANTS.MAX_INTERVAL,
+            lapseSteps:
+              rawSettings.lapseSteps?.split(' ').map(Number) ??
+              CARD_CONSTANTS.RELEARNING_STEPS,
+            minimumInterval: rawSettings.minimumInterval ?? 1,
+          }
+        : undefined;
+      result = this.calculateSM2(
+        dto.rating,
+        card.state,
+        card.interval,
+        card.easeFactor,
+        card.repetitions,
+        card.lapses,
+        card.currentStep,
+        settings,
+      );
+      easeAfter = result.newEase;
+    }
+
+    if (isPreview) {
+      result = {
+        newState: card.state,
+        newInterval: card.interval,
+        newEase: card.easeFactor,
+        newReps: card.repetitions,
+        newLapses: card.lapses,
+        newStep: card.currentStep,
+        newDue: card.due,
+      };
+      easeAfter = card.easeFactor;
+    }
+
+    const updateData: any = {
       lastReviewAt: now,
-    });
+    };
+    const isFsrsUpdate = algorithm === Algorithm.FSRS && !isPreview;
+    if (!isPreview) {
+      updateData.state = result.newState;
+      updateData.interval = result.newInterval;
+      updateData.easeFactor = easeAfter;
+      updateData.repetitions = result.newReps;
+      updateData.lapses = result.newLapses;
+      updateData.currentStep = result.newStep;
+      updateData.due = result.newDue;
+    }
+    if (isFsrsUpdate) {
+      updateData.fsrsStability = fsrsStability;
+      updateData.fsrsDifficulty = fsrsDifficulty;
+    }
+    await this.repo.update(id, updateData);
 
     const reviewLogData: any = {
       rating: dto.rating,
@@ -166,7 +295,7 @@ export class CardService {
       intervalBefore,
       intervalAfter: result.newInterval,
       easeBefore,
-      easeAfter: result.newEase,
+      easeAfter,
       responseTimeMs: dto.responseTimeMs,
       reviewedAt: now,
       card: { connect: { id } },
@@ -178,17 +307,19 @@ export class CardService {
 
     await this.repo.createReviewLog(reviewLogData);
 
-    const gamification = await this.gamificationService.awardReviewXp(userId);
+    const gamification = isPreview
+      ? { xpEarned: 0, dailyGoalBonus: false, achievementUnlocked: false }
+      : await this.gamificationService.awardReviewXp(userId);
 
     this.logger.log(
-      `Card ${id} reviewed: ${card.state}→${result.newState}, rating=${dto.rating}`,
+      `Card ${id} reviewed: ${card.state}→${result.newState}, rating=${dto.rating}${isPreview ? ' (preview)' : ''}`,
     );
 
     return {
       state: result.newState,
       due: result.newDue,
       interval: result.newInterval,
-      easeFactor: result.newEase,
+      easeFactor: easeAfter,
       xpEarned: gamification.xpEarned,
       dailyGoalBonus: gamification.dailyGoalBonus,
       achievementUnlocked: gamification.achievementUnlocked,
@@ -415,7 +546,8 @@ export class CardService {
       frontHtml: renderSide('front'),
       backHtml: extra ? `${renderSide('back')}<hr class="my-3"/>${extra}` : renderSide('back'),
       css: template.css,
-      note: { word: note.word, meaning: note.meaning, imageUrl: note.imageUrl, audioUrl: note.audioUrl },
+      templateType: 'CLOZE',
+      note: { word: note.word, meaning: note.meaning, imageUrl: note.imageUrl, audioUrl: note.audioUrl, fields: note.fields },
     };
   }
 
@@ -433,7 +565,8 @@ export class CardService {
       backHtml: '',
       css: template.css,
       occlusion: { imageUrl: note.imageUrl, masks: note.occlusionMasks },
-      note: { word: note.word, meaning: note.meaning, imageUrl: note.imageUrl, audioUrl: note.audioUrl },
+      templateType: 'IMAGE_OCCLUSION',
+      note: { word: note.word, meaning: note.meaning, imageUrl: note.imageUrl, audioUrl: note.audioUrl, fields: note.fields },
     };
   }
 
@@ -484,6 +617,7 @@ export class CardService {
       frontHtml: render(template.frontHtml),
       backHtml: render(template.backHtml),
       css: template.css,
+      templateType: note.template?.type ?? 'BASIC',
       note: {
         word: note.word,
         meaning: note.meaning,
@@ -492,6 +626,7 @@ export class CardService {
         example: note.example,
         audioUrl: note.audioUrl,
         imageUrl: note.imageUrl,
+        fields: note.fields,
       },
     };
   }

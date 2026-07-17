@@ -8,6 +8,7 @@ import {
   ListSessionQueryDto,
   SessionResponseDto,
 } from './study-session.dto';
+import { SessionType } from '@prisma/client';
 import { paginate } from '../../common/utils/paginate.util';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 
@@ -43,6 +44,7 @@ export class StudySessionService {
     const session = await this.repo.create(
       userId,
       dto.deckId,
+      dto.sessionType,
     );
     return session;
   }
@@ -66,6 +68,7 @@ export class StudySessionService {
     return {
       id: session.id,
       deckId: session.deckId,
+      sessionType: session.sessionType,
       startedAt: session.startedAt,
       endedAt: session.endedAt,
       stats,
@@ -82,6 +85,12 @@ export class StudySessionService {
       limit,
     );
     return paginate(items, total, { page, limit } as PaginationDto);
+  }
+
+  async getSessionType(userId: string, sessionId: string): Promise<SessionType | null> {
+    const session = await this.repo.findById(sessionId);
+    if (!session || session.userId !== userId) return null;
+    return session.sessionType;
   }
 
   async getReviewLogs(userId: string, id: string, dto: PaginationDto) {

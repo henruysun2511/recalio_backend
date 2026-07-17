@@ -34,6 +34,40 @@ export class NoteQueryDto extends SearchDto {
   templateId?: string;
 }
 
+// ─── Occlusion Mask ──────────────────────────────────────
+
+export class OcclusionMaskDto {
+  @ApiProperty({ example: 12.5 })
+  @Type(() => Number)
+  @IsNumber({}, { message: 'x phải là số' })
+  x: number;
+
+  @ApiProperty({ example: 20 })
+  @Type(() => Number)
+  @IsNumber({}, { message: 'y phải là số' })
+  y: number;
+
+  @ApiProperty({ example: 15 })
+  @Type(() => Number)
+  @IsNumber({}, { message: 'width phải là số' })
+  width: number;
+
+  @ApiProperty({ example: 8 })
+  @Type(() => Number)
+  @IsNumber({}, { message: 'height phải là số' })
+  height: number;
+
+  @ApiProperty({ example: 1 })
+  @Type(() => Number)
+  @IsInt({ message: 'groupIndex phải là số nguyên' })
+  groupIndex: number;
+
+  @ApiPropertyOptional({ example: 'Nhân' })
+  @IsOptional()
+  @IsString({ message: 'label phải là chuỗi kí tự' })
+  label?: string;
+}
+
 // ─── Update (PATCH /notes/:id) ───────────────────────────
 
 export class UpdateNoteDto {
@@ -101,40 +135,13 @@ export class UpdateNoteDto {
   @IsOptional()
   @IsObject({ message: 'fields phải là object' })
   fields?: Record<string, unknown>;
-}
 
-// ─── Occlusion Mask ──────────────────────────────────────
-
-export class OcclusionMaskDto {
-  @ApiProperty({ example: 12.5 })
-  @Type(() => Number)
-  @IsNumber({}, { message: 'x phải là số' })
-  x: number;
-
-  @ApiProperty({ example: 20 })
-  @Type(() => Number)
-  @IsNumber({}, { message: 'y phải là số' })
-  y: number;
-
-  @ApiProperty({ example: 15 })
-  @Type(() => Number)
-  @IsNumber({}, { message: 'width phải là số' })
-  width: number;
-
-  @ApiProperty({ example: 8 })
-  @Type(() => Number)
-  @IsNumber({}, { message: 'height phải là số' })
-  height: number;
-
-  @ApiProperty({ example: 1 })
-  @Type(() => Number)
-  @IsInt({ message: 'groupIndex phải là số nguyên' })
-  groupIndex: number;
-
-  @ApiPropertyOptional({ example: 'Nhân' })
+  @ApiPropertyOptional({ type: [OcclusionMaskDto] })
   @IsOptional()
-  @IsString({ message: 'label phải là chuỗi kí tự' })
-  label?: string;
+  @IsArray({ message: 'masks phải là mảng' })
+  @ValidateNested({ each: true })
+  @Type(() => OcclusionMaskDto)
+  masks?: OcclusionMaskDto[];
 }
 
 // ─── Response ────────────────────────────────────────────

@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructures/prisma/prisma.service';
-import { Prisma, ReviewRating } from '@prisma/client';
+import { Prisma, ReviewRating, SessionType } from '@prisma/client';
 
 const sessionSelect = {
   id: true,
   deckId: true,
+  sessionType: true,
   startedAt: true,
   endedAt: true,
 } satisfies Prisma.StudySessionSelect;
@@ -18,9 +19,9 @@ const sessionDetailSelect = {
 export class StudySessionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(userId: string, deckId: string | undefined) {
+  async create(userId: string, deckId: string | undefined, sessionType: SessionType = SessionType.NORMAL) {
     return this.prisma.studySession.create({
-      data: { userId, deckId },
+      data: { userId, deckId, sessionType },
       select: sessionSelect,
     });
   }

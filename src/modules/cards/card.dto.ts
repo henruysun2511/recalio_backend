@@ -34,6 +34,31 @@ export class DueCardsQueryDto {
     message: `limit tối đa là ${CARD_CONSTANTS.MAX_LIMIT}`,
   })
   limit?: number;
+
+  @ApiPropertyOptional({ enum: ['normal', 'cram', 'preview'], default: 'normal' })
+  @IsOptional()
+  @IsString({ message: 'mode phải là chuỗi kí tự' })
+  mode?: 'normal' | 'cram' | 'preview';
+}
+
+export class CustomSessionCardsQueryDto {
+  @ApiProperty({ example: 'uuid' })
+  @IsString({ message: 'sessionId phải là chuỗi kí tự' })
+  sessionId: string;
+
+  @ApiProperty({ example: 'uuid' })
+  @IsString({ message: 'deckId phải là chuỗi kí tự' })
+  deckId: string;
+
+  @ApiPropertyOptional({ example: 999 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'limit phải là số nguyên' })
+  @Min(1, { message: 'limit tối thiểu là 1' })
+  @Max(CARD_CONSTANTS.MAX_LIMIT, {
+    message: `limit tối đa là ${CARD_CONSTANTS.MAX_LIMIT}`,
+  })
+  limit?: number;
 }
 
 export class FindByDeckQueryDto extends PaginationDto {
@@ -74,6 +99,7 @@ export class CardResponseDto {
     imageUrl: string;
     masks: { x: number; y: number; width: number; height: number; groupIndex: number; label?: string | null }[];
   };
+  templateType: string;
   note: {
     word?: string | null;
     meaning?: string | null;
@@ -82,6 +108,7 @@ export class CardResponseDto {
     example?: string | null;
     audioUrl?: string | null;
     imageUrl?: string | null;
+    fields?: Record<string, any> | null;
   };
 }
 

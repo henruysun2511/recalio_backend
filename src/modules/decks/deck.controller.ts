@@ -9,8 +9,14 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  Res,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
+import { ApiTags, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { DeckService } from './deck.service';
 import {
@@ -18,6 +24,7 @@ import {
   UpdateDeckDto,
   QueryDeckDto,
   DeckResponseDto,
+  ExportDeckDto,
 } from './deck.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -29,7 +36,7 @@ import { SwaggerDoc } from '../../common/swagger/swagger-doc';
 @ApiBearerAuth()
 @Controller('decks')
 export class DeckController {
-  constructor(private readonly service: DeckService) {}
+  constructor(private readonly service: DeckService) { }
 
   @Get()
   @Public()
@@ -71,15 +78,15 @@ export class DeckController {
     return this.service.getArchivedList(userId, dto);
   }
 
-    @Get('featured')
-    @Public()
-    @ResponseMessage('Lấy danh sách deck nổi bật thành công')
-    @SwaggerDoc({ summary: 'List featured decks', responseType: DeckResponseDto, isArray: true })
-    async getFeaturedList(@Query() dto: QueryDeckDto) {
-        return this.service.getFeaturedList(dto);
-    }
+  @Get('featured')
+  @Public()
+  @ResponseMessage('Lấy danh sách deck nổi bật thành công')
+  @SwaggerDoc({ summary: 'List featured decks', responseType: DeckResponseDto, isArray: true })
+  async getFeaturedList(@Query() dto: QueryDeckDto) {
+    return this.service.getFeaturedList(dto);
+  }
 
-    @Get('cloned')
+  @Get('cloned')
   @ResponseMessage('Lấy danh sách deck đã clone thành công')
   @SwaggerDoc({
     summary: 'List cloned decks',
@@ -194,5 +201,30 @@ export class DeckController {
   })
   async listPublic(@Query() dto: QueryDeckDto) {
     return this.service.getPublicList(dto);
+  }
+
+  @Get(':id/export')
+  @ResponseMessage('Tải xuống deck thành công')
+  @SwaggerDoc({ summary: 'Export deck as .rcl file' })
+  async exportDeck(
+    @CurrentUser('id') userId: string,
+    @Param('id') id: string,
+    @Query() dto: ExportDeckDto,
+    @Res() res: Response,
+  ) {
+    await this.service.exportDeck(id, userId, dto.includeMedia ?? false, res);
+  }
+
+  @Post('import')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ResponseMessage('Import deck thành công')
+  @SwaggerDoc({ summary: 'Import deck from .rcl file' })
+  async importDeck(
+    @CurrentUser('id') userId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Vui lòng chọn file .rcl');
+    return this.service.importDeck(userId, file);
   }
 }

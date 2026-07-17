@@ -1,13 +1,18 @@
-import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsInt, Min, Max, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { SESSION_CONSTANTS } from './study-session.constant';
+import { SessionType } from '@prisma/client';
 
 export class StartSessionDto {
   @ApiPropertyOptional({ example: 'uuid' })
   @IsOptional()
   @IsString({ message: 'deckId phải là chuỗi kí tự' })
   deckId?: string;
+
+  @ApiPropertyOptional({ enum: SessionType, default: SessionType.NORMAL })
+  @IsOptional()
+  @IsEnum(SessionType, { message: 'sessionType không hợp lệ' })
+  sessionType?: SessionType;
 }
 
 export class ListSessionQueryDto {
@@ -35,6 +40,7 @@ export class ListSessionQueryDto {
 export class SessionResponseDto {
   id: string;
   deckId: string | null;
+  sessionType: SessionType;
   startedAt: Date;
   endedAt: Date | null;
   stats?: {

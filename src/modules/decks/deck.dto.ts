@@ -3,6 +3,7 @@ import {
   IsOptional,
   IsBoolean,
   IsArray,
+  IsObject,
   MinLength,
   MaxLength,
   ArrayMaxSize,
@@ -38,6 +39,14 @@ export class QueryDeckDto extends SearchDto {
       PAGINATION.MAX_LIMIT,
     );
   }
+}
+
+export class ExportDeckDto {
+  @ApiPropertyOptional({ example: true, description: 'Bundle media files into the .rcl archive' })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  includeMedia?: boolean;
 }
 
 export class CreateDeckDto {
@@ -92,6 +101,11 @@ export class CreateDeckDto {
   @IsOptional()
   @IsString({ message: 'parentId phải là chuỗi kí tự' })
   parentId?: string;
+
+  @ApiPropertyOptional({ description: 'Deck study settings' })
+  @IsOptional()
+  @IsObject({ message: 'setting phải là object' })
+  setting?: Record<string, unknown>;
 }
 
 export class UpdateDeckDto {

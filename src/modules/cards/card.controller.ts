@@ -18,6 +18,7 @@ import {
   ReviewCardDto,
   CardResponseDto,
   CardStatsDto,
+  CustomSessionCardsQueryDto,
 } from './card.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ResponseMessage } from '../../common/decorators/response-message.decorator';
@@ -55,7 +56,21 @@ export class CardController {
     @CurrentUser('id') userId: string,
     @Query() dto: DueCardsQueryDto,
   ) {
-    return this.service.getDueCards(userId, dto);
+    return this.service.getDueCards(userId, { ...dto, mode: dto.mode ?? 'normal' });
+  }
+
+  @Get('custom-session')
+  @ResponseMessage('Lấy danh sách card cho custom session')
+  @SwaggerDoc({
+    summary: 'Get cards for custom study session',
+    responseType: CardResponseDto,
+    isArray: true,
+  })
+  async getCustomSessionCards(
+    @CurrentUser('id') userId: string,
+    @Query() dto: CustomSessionCardsQueryDto,
+  ) {
+    return this.service.getCustomSessionCards(userId, dto);
   }
 
   @Get('stats')

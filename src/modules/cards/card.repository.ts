@@ -53,38 +53,46 @@ export class CardRepository {
   ) {
     const baseWhere: Prisma.CardWhereInput = {
       userId,
-      state: {
-        in: [
-          CardState.NEW,
-          CardState.LEARNING,
-          CardState.RELEARNING,
-          CardState.REVIEW,
-        ],
-      },
-      due: { lte: new Date() },
       note: { deletedAt: null },
       ...(deckId ? { deckId } : {}),
     };
 
     let items: any[] = [];
+    // NEW cards — due <= now
     if (newLimit === undefined || newLimit === null || newLimit > 0) {
       items = items.concat(
         await this.prisma.card.findMany({
-          where: { ...baseWhere, state: CardState.NEW },
+          where: {
+            ...baseWhere,
+            state: CardState.NEW,
+            due: { lte: new Date() },
+          },
           orderBy: { due: 'asc' },
           take: newLimit != null ? Math.min(newLimit, limit) : limit,
           select: cardWithNoteSelect,
         }),
       );
     }
+    // LEARNING / RELEARNING — always show regardless of due
+    items = items.concat(
+      await this.prisma.card.findMany({
+        where: {
+          ...baseWhere,
+          state: { in: [CardState.LEARNING, CardState.RELEARNING] },
+        },
+        orderBy: { due: 'asc' },
+        take: limit,
+        select: cardWithNoteSelect,
+      }),
+    );
+    // REVIEW — due <= now
     if (reviewLimit === undefined || reviewLimit === null || reviewLimit > 0) {
       items = items.concat(
         await this.prisma.card.findMany({
           where: {
             ...baseWhere,
-            state: {
-              in: [CardState.LEARNING, CardState.RELEARNING, CardState.REVIEW],
-            },
+            state: CardState.REVIEW,
+            due: { lte: new Date() },
           },
           orderBy: { due: 'asc' },
           take: reviewLimit != null ? Math.min(reviewLimit, limit) : limit,
@@ -93,7 +101,7 @@ export class CardRepository {
       );
     }
 
-    const total = await this.prisma.card.count({ where: baseWhere });
+    const total = items.length;
 
     return { items, total };
   }
@@ -131,6 +139,7 @@ export class CardRepository {
                 leechThreshold: true,
                 leechAction: true,
                 requestRetention: true,
+                fsrsWeights: true,
               },
             },
           },
@@ -246,6 +255,34 @@ export class CardRepository {
       },
     });
     return setting;
+  }
+
+  async findCramCards(userId: string, deckId: string, limit = 999) {
+    return this.prisma.card.findMany({
+      where: {
+        userId,
+        deckId,
+        note: { deletedAt: null },
+        state: { not: CardState.SUSPENDED },
+      },
+      orderBy: [{ state: 'asc' }, { due: 'asc' }],
+      take: limit,
+      select: cardWithNoteSelect,
+    });
+  }
+
+  async findPreviewCards(userId: string, deckId: string, limit = 999) {
+    return this.prisma.card.findMany({
+      where: {
+        userId,
+        deckId,
+        note: { deletedAt: null },
+        state: { not: CardState.SUSPENDED },
+      },
+      orderBy: [{ state: 'asc' }, { due: 'asc' }],
+      take: limit,
+      select: cardWithNoteSelect,
+    });
   }
 
   async countTodayReviews(userId: string, deckId: string, since: Date) {

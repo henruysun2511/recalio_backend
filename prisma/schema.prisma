@@ -356,13 +356,12 @@ model ReviewLog {
 }
 
 model StudySession {
-  id        String    @id @default(uuid())
-  userId    String
-  deckId    String?
-  startedAt DateTime  @default(now())
-  endedAt   DateTime?
-
-  // Không lưu counter — tính từ reviewLogs GROUP BY sessionId
+  id           String       @id @default(uuid())
+  userId       String
+  deckId       String?
+  sessionType  SessionType  @default(NORMAL)
+  startedAt    DateTime     @default(now())
+  endedAt      DateTime?
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   deck       Deck?       @relation(fields: [deckId], references: [id])
@@ -639,6 +638,12 @@ enum ReviewRating {
   HARD
   GOOD
   EASY
+}
+
+enum SessionType {
+  NORMAL
+  CRAM
+  PREVIEW
 }
 
 enum NotificationType {

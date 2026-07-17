@@ -22,6 +22,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { AchievementModule } from './modules/achievement/achievement.module';
 import { PostModule } from './modules/posts/post.module';
 import { PostCommentModule } from './modules/post-comments/post-comment.module';
+import { SearchModule } from './modules/search/search.module';
 import { SuggestionModule } from './modules/suggestions/suggestion.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { defaultQueueOptions } from './config/queue.config';
@@ -50,6 +51,7 @@ import { CloudinaryModule } from './infrastructures/cloudinary/cloudinary.module
     AchievementModule,
     PostModule,
     PostCommentModule,
+    SearchModule,
     SuggestionModule,
     AdminModule,
     CloudinaryModule,

@@ -7,7 +7,7 @@ export const AppConfig = {
   IS_DEV: process.env.NODE_ENV === 'development',
   IS_PROD: process.env.NODE_ENV === 'production',
   CORS_ORIGINS: process.env.CORS_ORIGINS?.split(',')?.filter(Boolean) || [
-    'http://localhost:3001',
+    'http://localhost:3001', 'https://recalio-five.vercel.app/'
   ],
   CORS_METHODS: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   CORS_CREDENTIALS: process.env.CORS_CREDENTIALS === 'true',
